@@ -1,0 +1,6 @@
+name: ELootchests
+version: '1.0-Alpha'
+main: com.Aiden.net.Elivius.eLootchests.ELootchests
+api-version: '1.21'
+authors: [ Aiden Rafferty ]
+description: A plugin to spawn chests at a set location using the wand giving with random loot in each chest.
