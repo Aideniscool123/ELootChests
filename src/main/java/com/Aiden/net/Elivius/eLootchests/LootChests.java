@@ -1,6 +1,7 @@
 package com.Aiden.net.Elivius.eLootchests;
 
 import org.bukkit.*;
+import org.bukkit.entity.Boss;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -13,10 +14,8 @@ public final class LootChests extends JavaPlugin implements Listener {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
 
-        // Initialize boss manager with single test folder
         this.bossManager = new BossManager(this);
 
-        // Register the command executor
         getCommand("eloot").setExecutor(new ElootCommand(this, bossManager));
 
         getLogger().info("LootChests has been enabled!");
