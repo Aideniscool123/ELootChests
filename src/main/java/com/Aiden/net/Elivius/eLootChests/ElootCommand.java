@@ -16,7 +16,7 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
-
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import java.util.*;
 
 public class ElootCommand implements CommandExecutor, Listener {

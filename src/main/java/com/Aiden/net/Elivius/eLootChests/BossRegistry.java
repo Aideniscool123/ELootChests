@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 
 public class BossRegistry {
     private final JavaPlugin plugin;

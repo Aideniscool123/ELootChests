@@ -1,7 +1,7 @@
 package com.Aiden.net.Elivius.eLootChests;
 
 import org.bukkit.*;
-
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;

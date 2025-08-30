@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 
 import java.io.File;
 import java.io.IOException;

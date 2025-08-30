@@ -6,7 +6,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
