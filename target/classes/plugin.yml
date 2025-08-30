@@ -1,19 +1,20 @@
 name: ELootchests
 version: 1.0-Alpha
-main: com.Aiden.net.Elivius.eLootchests.LootChests
+main: com.Aiden.net.Elivius.eLootChests.LootChests
 api-version: 1.21
 authors: [Aiden Rafferty]
 description: A plugin that spawns loot chests with random loot
 
-
+# ========== COMMANDS ==========
 commands:
   eloot:
     description: Main command for loot chests
     usage: /eloot <wand|spawn|despawn|table|new|info|edit>
     permission: eloot.use
     permission-message: You don't have permission to use this command!
+    aliases: [lootchest]
 
-
+# ========== PERMISSIONS ==========
 permissions:
   eloot.use:
     description: Allows using eloot commands
@@ -21,3 +22,17 @@ permissions:
   eloot.wand.use:
     description: Allows using the wand tool
     default: op
+  eloot.spawn.use:
+    description: Allows spawning loot chests
+    default: op
+  eloot.despawn.use:
+    description: Allows despawning loot chests
+    default: op
+  eloot.admin:
+    description: All admin permissions
+    default: op
+    children:
+      eloot.use: true
+      eloot.wand.use: true
+      eloot.spawn.use: true
+      eloot.despawn.use: true

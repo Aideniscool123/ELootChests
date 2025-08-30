@@ -1,4 +1,4 @@
-package com.Aiden.net.Elivius.eLootchests;
+package com.Aiden.net.Elivius.eLootChests;
 
 import org.bukkit.*;
 import org.bukkit.command.Command;
@@ -20,11 +20,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class ElootCommand implements CommandExecutor, Listener {
-    private final com.Aiden.net.Elivius.eLootchests.LootChests plugin;
-    private final com.Aiden.net.Elivius.eLootchests.BossManager bossManager;
+    private final com.Aiden.net.Elivius.eLootChests.LootChests plugin;
+    private final com.Aiden.net.Elivius.eLootChests.BossManager bossManager;
     private final Map<Player, String> wandModes = new HashMap<>();
 
-    public ElootCommand(com.Aiden.net.Elivius.eLootchests.LootChests plugin, com.Aiden.net.Elivius.eLootchests.BossManager bossManager) {
+    public ElootCommand(LootChests plugin, BossManager bossManager, BossRegistry bossRegistry) {
         this.plugin = plugin;
         this.bossManager = bossManager;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);

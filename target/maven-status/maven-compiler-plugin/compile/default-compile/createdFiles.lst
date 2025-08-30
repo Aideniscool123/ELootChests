@@ -1,5 +1,7 @@
-com\Aiden\net\Elivius\eLootchests\BossManager.class
-com\Aiden\net\Elivius\eLootchests\LootChests.class
-com\Aiden\net\Elivius\eLootchests\LootChests$1.class
-com\Aiden\net\Elivius\eLootchests\ElootCommand.class
-com\Aiden\net\Elivius\eLootchests\BossManager$1.class
+com\Aiden\net\Elivius\eLootChests\BossRegistry.class
+com\Aiden\net\Elivius\eLootChests\BossManager.class
+com\Aiden\net\Elivius\eLootChests\LootChests.class
+com\Aiden\net\Elivius\eLootChests\BossManager$1.class
+com\Aiden\net\Elivius\eLootChests\ElootTabCompleter.class
+com\Aiden\net\Elivius\eLootChests\ElootCommand.class
+com\Aiden\net\Elivius\eLootChests\LootChests$1.class

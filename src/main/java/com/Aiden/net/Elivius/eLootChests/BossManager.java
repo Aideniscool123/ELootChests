@@ -1,4 +1,4 @@
-package com.Aiden.net.Elivius.eLootchests;
+package com.Aiden.net.Elivius.eLootChests;
 
 import org.bukkit.Location;
 import org.bukkit.World;

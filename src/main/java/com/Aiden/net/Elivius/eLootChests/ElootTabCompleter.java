@@ -1,4 +1,4 @@
-package com.Aiden.net.Elivius.eLootchests;
+package com.Aiden.net.Elivius.eLootChests;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -13,7 +13,10 @@ import java.util.List;
 
 public class ElootTabCompleter implements TabCompleter {
 
-    public ElootTabCompleter(BossManager bossManager) {
+    private final BossManager bossRegistry;
+
+    public ElootTabCompleter(BossManager bossRegistry) {
+        this.bossRegistry = bossRegistry;
     }
 
     @Override

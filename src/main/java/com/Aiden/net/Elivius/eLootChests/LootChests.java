@@ -1,13 +1,18 @@
-package com.Aiden.net.Elivius.eLootchests;
+package com.Aiden.net.Elivius.eLootChests;
 
 import org.bukkit.*;
-import org.bukkit.entity.Boss;
+
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public final class LootChests extends JavaPlugin implements Listener {
     private BossManager bossManager;
+    private final BossRegistry bossRegistry;
+
+    public LootChests(BossRegistry bossRegistry) {
+        this.bossRegistry = bossRegistry;
+    }
 
     @Override
     public void onEnable() {
@@ -16,7 +21,7 @@ public final class LootChests extends JavaPlugin implements Listener {
 
         this.bossManager = new BossManager(this);
 
-        getCommand("eloot").setExecutor(new ElootCommand(this, bossManager));
+        getCommand("eloot").setExecutor(new ElootCommand(this, bossManager, bossRegistry));
         getCommand("eloot").setTabCompleter(new ElootTabCompleter(bossManager));
 
         getLogger().info("LootChests has been enabled!");

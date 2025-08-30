@@ -1,11 +1,11 @@
 name: ELootchests
 version: 1.0-Alpha
-main: com.Aiden.net.Elivius.lootChests.LootChests
+main: com.Aiden.net.Elivius.eLootChests.LootChests
 api-version: 1.21
 authors: [Aiden Rafferty]
 description: A plugin that spawns loot chests with random loot
 
-# ========== COMMANDS SECTION ==========
+# ========== COMMANDS ==========
 commands:
   eloot:
     description: Main command for loot chests
@@ -14,7 +14,7 @@ commands:
     permission-message: You don't have permission to use this command!
     aliases: [lootchest]
 
-# ========== PERMISSIONS SECTION ==========
+# ========== PERMISSIONS ==========
 permissions:
   eloot.use:
     description: Allows using eloot commands
