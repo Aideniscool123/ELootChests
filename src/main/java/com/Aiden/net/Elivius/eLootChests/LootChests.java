@@ -7,13 +7,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public final class LootChests extends JavaPlugin implements Listener {
-    private BossManager bossManager;
-    private BossRegistry bossRegistry;
-
     public LootChests() {
     }
 
-    @Override
+    private BossManager bossManager;
+    private BossRegistry bossRegistry;
+
     public void onEnable() {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
