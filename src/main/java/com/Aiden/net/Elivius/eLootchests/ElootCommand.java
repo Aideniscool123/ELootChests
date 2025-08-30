@@ -32,9 +32,9 @@ public class ElootCommand implements CommandExecutor, Listener {
 
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
         if (args.length == 0) {
-            sender.sendMessage("§cUsage: /eloot <wand|spawn|despawn|table|new|info|edit>");
+            sender.sendMessage("§cUsage: /eloot < wand || spawn || respawn || table || new || info || edit >");
             return true;
         }
 
@@ -77,6 +77,17 @@ public class ElootCommand implements CommandExecutor, Listener {
                 wandModes.put(player, "show");
                 player.sendMessage("§aWand mode set to: §eSHOW§a - Showing nearby chest locations");
                 showNearbyLocations(player, 100, false, "show");
+                break;
+
+            case "select":
+                if (args.length < 3) {
+                    player.sendMessage("§cUsage: /eloot wand select <group>");
+                    return false;
+                }
+                String groupName = args[2];
+                player.sendMessage("§aSelected group: §e" + groupName);
+                // Here you would implement actual group selection logic
+                wandModes.put(player, "add"); // Default to add mode after selection
                 break;
 
             default:
