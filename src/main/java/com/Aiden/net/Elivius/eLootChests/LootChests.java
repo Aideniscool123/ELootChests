@@ -8,10 +8,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public final class LootChests extends JavaPlugin implements Listener {
     private BossManager bossManager;
-    private final BossRegistry bossRegistry;
+    private BossRegistry bossRegistry;
 
-    public LootChests(BossRegistry bossRegistry) {
-        this.bossRegistry = bossRegistry;
+    public LootChests() {
     }
 
     @Override
