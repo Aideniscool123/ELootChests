@@ -1,5 +1,6 @@
 package com.Aiden.net.Elivius.eLootChests;
 
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -16,25 +17,26 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
-import com.Aiden.net.Elivius.eLootChests.Enums.*;
+
 import java.util.*;
 
 public class ElootCommand implements CommandExecutor, Listener {
-    private final com.Aiden.net.Elivius.eLootChests.LootChests plugin;
-    private final com.Aiden.net.Elivius.eLootChests.BossManager bossManager;
-    private final Map<Player, String> wandModes = new HashMap<>();
+    private final LootChests plugin;
+    private final BossManager bossManager;
+    private final BossRegistry bossRegistry;
+    private final Map<Player, WandMode> wandModes = new HashMap<>();
 
     public ElootCommand(LootChests plugin, BossManager bossManager, BossRegistry bossRegistry) {
         this.plugin = plugin;
         this.bossManager = bossManager;
+        this.bossRegistry = bossRegistry;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§cUsage: /eloot < wand || spawn || respawn || table || new || info || edit >");
+            sender.sendMessage("§cUsage: /eloot <wand|spawn|despawn|table|new|info|edit>");
             return true;
         }
 
@@ -46,37 +48,37 @@ public class ElootCommand implements CommandExecutor, Listener {
             return handleWandCommand((Player) sender, args);
         }
 
-        sender.sendMessage("§cUnknown sub-command. Use: /eloot to see usage!");
+        sender.sendMessage("§cUnknown sub-command. Use: /eloot wand");
         return true;
     }
 
     private boolean handleWandCommand(Player player, String[] args) {
-
+        // Stop all particles when switching modes
         bossManager.stopPlayerParticles(player);
 
         if (args.length == 1) {
             giveWand(player);
-            wandModes.put(player, "add");
-            player.sendMessage("§aWand mode set to: §eADD§a");
+            wandModes.put(player, WandMode.ADD);
+            player.sendMessage("§aWand mode set to: §e" + WandMode.ADD.getDisplayName() + "§a (default)");
             return true;
         }
 
         switch (args[1].toLowerCase()) {
             case "add":
-                wandModes.put(player, "add");
-                player.sendMessage("§aWand mode set to: §eADD§a - Right-click blocks to add chest locations");
+                wandModes.put(player, WandMode.ADD);
+                player.sendMessage("§aWand mode set to: §e" + WandMode.ADD.getDisplayName() + "§a - " + WandMode.ADD.getDescription());
                 break;
 
             case "remove":
-                wandModes.put(player, "remove");
-                player.sendMessage("§aWand mode set to: §eREMOVE§a - Right-click to remove chest locations");
-                showNearbyLocations(player, 50, true, "remove");
+                wandModes.put(player, WandMode.REMOVE);
+                player.sendMessage("§aWand mode set to: §e" + WandMode.REMOVE.getDisplayName() + "§a - " + WandMode.REMOVE.getDescription());
+                showNearbyLocations(player, 50, WandMode.REMOVE);
                 break;
 
             case "show":
-                wandModes.put(player, "show");
-                player.sendMessage("§aWand mode set to: §eSHOW§a - Showing nearby chest locations");
-                showNearbyLocations(player, 100, false, "show");
+                wandModes.put(player, WandMode.SHOW);
+                player.sendMessage("§aWand mode set to: §e" + WandMode.SHOW.getDisplayName() + "§a - " + WandMode.SHOW.getDescription());
+                showNearbyLocations(player, 100, WandMode.SHOW);
                 break;
 
             case "select":
@@ -86,8 +88,7 @@ public class ElootCommand implements CommandExecutor, Listener {
                 }
                 String groupName = args[2];
                 player.sendMessage("§aSelected group: §e" + groupName);
-                // Here you would implement actual group selection logic
-                wandModes.put(player, "add"); // Default to add mode after selection
+                wandModes.put(player, WandMode.ADD);
                 break;
 
             default:
@@ -98,7 +99,7 @@ public class ElootCommand implements CommandExecutor, Listener {
         return true;
     }
 
-    private void showNearbyLocations(Player player, int radius, boolean showThroughBlocks, String mode) {
+    private void showNearbyLocations(Player player, int radius, WandMode mode) {
         List<Location> allLocations = bossManager.getSavedChestLocations();
         Location playerLoc = player.getLocation();
 
@@ -107,14 +108,14 @@ public class ElootCommand implements CommandExecutor, Listener {
             if (loc.getWorld().equals(playerLoc.getWorld()) &&
                     loc.distance(playerLoc) <= radius) {
 
-                int durationTicks = mode.equals("remove") ? -1 : 600;
-                bossManager.showLocationParticles(player, loc, Particle.HAPPY_VILLAGER, durationTicks, showThroughBlocks);
+                bossManager.showLocationParticles(player, loc, mode.getParticleType(),
+                        mode.getDurationTicks(), mode.getParticleType().canSeeThroughBlocks());
                 count++;
             }
         }
 
-        String durationMsg = mode.equals("remove") ? "until mode change" : "for 30 seconds";
-        player.sendMessage("§aShowing §e" + count + "§a chest locations");
+        String durationMsg = mode.getDurationTicks() == -1 ? "until mode change" : "for 30 seconds";
+        player.sendMessage("§aShowing §e" + count + "§a chest locations within §e" + radius + "§a blocks (§7" + durationMsg + "§a)");
     }
 
     private boolean giveWand(CommandSender sender) {
@@ -138,7 +139,7 @@ public class ElootCommand implements CommandExecutor, Listener {
                     "§7Right-click blocks to set",
                     "§7chest locations for loot",
                     "§7chest configuration.",
-                    "§8Mode: ADD"
+                    "§8Mode: " + WandMode.ADD.getDisplayName()
             ));
             wand.setItemMeta(meta);
         }
@@ -172,21 +173,21 @@ public class ElootCommand implements CommandExecutor, Listener {
 
         event.setCancelled(true);
         Location clickedLocation = event.getClickedBlock().getLocation();
-        String mode = wandModes.getOrDefault(player, "add");
+        WandMode mode = wandModes.getOrDefault(player, WandMode.ADD);
 
         switch (mode) {
-            case "add":
+            case ADD:
                 plugin.showChestLocation(clickedLocation);
                 bossManager.saveChestLocation(clickedLocation);
                 player.sendMessage("§aLocation saved! Chest added to coordinates.");
-                updateWandLore(player, "ADD");
+                updateWandLore(player, mode.getDisplayName());
                 break;
 
-            case "remove":
+            case REMOVE:
                 // Create location with correct Y+1 for particle matching
                 Location particleLocation = new Location(clickedLocation.getWorld(),
                         clickedLocation.getX(),
-                        clickedLocation.getY() + 1, // +1 to match particle height
+                        clickedLocation.getY() + 1,
                         clickedLocation.getZ());
 
                 if (bossManager.removeChestLocation(clickedLocation)) {
@@ -194,13 +195,13 @@ public class ElootCommand implements CommandExecutor, Listener {
                     // Stop particles for this removed location (using Y+1 position)
                     bossManager.stopLocationParticles(player, particleLocation);
                     // Show confirmation particles
-                    bossManager.showLocationParticles(player, clickedLocation, Particle.HAPPY_VILLAGER, 20, false);
+                    bossManager.showLocationParticles(player, clickedLocation, ParticleType.SMOKE_LARGE, 20, false);
                 } else {
                     player.sendMessage("§cNo chest location found at this position!");
                 }
                 break;
 
-            case "show":
+            case SHOW:
                 plugin.showChestLocation(clickedLocation);
                 player.sendMessage("§aShowing this chest location");
                 break;

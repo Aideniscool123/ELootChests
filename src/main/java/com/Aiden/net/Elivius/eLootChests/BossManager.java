@@ -70,18 +70,10 @@ public class BossManager {
         File lootFile = new File(testFolder, "loottable.yml");
         YamlConfiguration loot = new YamlConfiguration();
 
-        loot.set("common.items", new ArrayList<String>());
-        loot.set("common.spawn-percentage", 70.0);
-        loot.set("rare.items", new ArrayList<String>());
-        loot.set("rare.spawn-percentage", 20.0);
-        loot.set("epic.items", new ArrayList<String>());
-        loot.set("epic.spawn-percentage", 7.0);
-        loot.set("legendary.items", new ArrayList<String>());
-        loot.set("legendary.spawn-percentage", 2.5);
-        loot.set("mythic.items", new ArrayList<String>());
-        loot.set("mythic.spawn-percentage", 0.4);
-        loot.set("godlike.items", new ArrayList<String>());
-        loot.set("godlike.spawn-percentage", 0.1);
+        for (Rarity rarity : Rarity.values()) {
+            loot.set(rarity.name().toLowerCase() + ".items", new ArrayList<String>());
+            loot.set(rarity.name().toLowerCase() + ".spawn-percentage", rarity.getSpawnPercentage());
+        }
 
         try {
             loot.save(lootFile);
@@ -149,11 +141,12 @@ public class BossManager {
         return locations;
     }
 
-    public void showLocationParticles(Player player, Location location, Particle particle, int durationTicks, boolean throughBlocks) {
-
+    public void showLocationParticles(Player player, Location location, ParticleType particleType,
+                                      int durationTicks, boolean throughBlocks) {
+        // Use the enum values instead of hardcoded particles
         World world = location.getWorld();
         double x = location.getX() + 0.5;
-        double y = location.getY() + 0.2;
+        double y = location.getY() + 1.2;
         double z = location.getZ() + 0.5;
 
         BukkitRunnable runnable = new BukkitRunnable() {
@@ -162,15 +155,15 @@ public class BossManager {
             @Override
             public void run() {
                 if (duration > durationTicks && durationTicks != -1) {
-                    stopLocationParticles(player, location);
+                    stopPlayerParticles(player);
                     return;
                 }
 
                 if (player.isOnline()) {
                     if (throughBlocks) {
-                        player.spawnParticle(Particle.GLOW, x, y, z, 3, 0.1, 0.1, 0.1, 0.05);
+                        player.spawnParticle(ParticleType.GLOW.getParticle(), x, y, z, 3, 0.1, 0.1, 0.1, 0.05);
                     } else {
-                        player.spawnParticle(Particle.HAPPY_VILLAGER, x, y, z, 3, 0.1, 0.1, 0.1, 0.05);
+                        player.spawnParticle(particleType.getParticle(), x, y, z, 3, 0.1, 0.1, 0.1, 0.05);
                     }
                 } else {
                     this.cancel();
@@ -244,6 +237,19 @@ public class BossManager {
             loot.save(new File(testFolder, "loottable.yml"));
         } catch (IOException e) {
             plugin.getLogger().warning("Failed to save loot table for test folder");
+        }
+    }
+
+    public void validateRarityPercentages() {
+        YamlConfiguration loot = getLootTable();
+        double total = 0;
+
+        for (Rarity rarity : Rarity.values()) {
+            total += loot.getDouble(rarity.name().toLowerCase() + ".spawn-percentage", 0);
+        }
+
+        if (Math.abs(total - 100.0) > 0.1) {
+            plugin.getLogger().warning("Rarity percentages don't sum to 100%! Total: " + total);
         }
     }
 

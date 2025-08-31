@@ -1,21 +1,22 @@
 package com.Aiden.net.Elivius.eLootChests;
 
+import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.Aiden.net.Elivius.eLootChests.Enums.*;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class ElootTabCompleter implements TabCompleter {
 
-    private final BossManager bossRegistry;
+    private final BossRegistry bossRegistry;
 
-    public ElootTabCompleter(BossManager bossRegistry) {
+    public ElootTabCompleter(BossManager bossManager, BossRegistry bossRegistry) {
         this.bossRegistry = bossRegistry;
     }
 
@@ -36,22 +37,90 @@ public class ElootTabCompleter implements TabCompleter {
                     return StringUtil.copyPartialMatches(args[1], Arrays.asList(
                             "add", "remove", "show", "select"
                     ), completions);
+
                 case "spawn":
                 case "despawn":
                 case "info":
                 case "edit":
-                    // Add your group names here later
-                    return StringUtil.copyPartialMatches(args[1], Arrays.asList(
-                            "test", "lushsanctuary", "santaboss" // Example groups
+                    // Get boss names from enum and registry
+                    List<String> bossNames = new ArrayList<>();
+
+                    // Add enum boss types
+                    for (BossType boss : BossType.values()) {
+                        bossNames.add(boss.getConfigName());
+                    }
+
+                    // Add dynamically registered bosses from registry
+                    bossNames.addAll(bossRegistry.getAllBossNames());
+
+                    return StringUtil.copyPartialMatches(args[1], bossNames, completions);
+
+                case "table":
+                    // Chest action commands
+                    List<String> actions = new ArrayList<>();
+                    for (ChestAction action : ChestAction.values()) {
+                        actions.add(action.getCommand());
+                    }
+                    return StringUtil.copyPartialMatches(args[1], actions, completions);
+
+                case "new":
+                    // Suggest default boss types for creation
+                    List<String> defaultBosses = new ArrayList<>();
+                    for (BossType boss : BossType.values()) {
+                        defaultBosses.add(boss.getConfigName());
+                    }
+                    return StringUtil.copyPartialMatches(args[1], defaultBosses, completions);
+            }
+        }
+
+        if (args.length == 3) {
+            switch (args[0].toLowerCase()) {
+                case "wand":
+                    if (args[1].equalsIgnoreCase("select")) {
+                        // Boss names for wand selection
+                        List<String> bossNames = new ArrayList<>();
+                        for (BossType boss : BossType.values()) {
+                            bossNames.add(boss.getConfigName());
+                        }
+                        bossNames.addAll(bossRegistry.getAllBossNames());
+                        return StringUtil.copyPartialMatches(args[2], bossNames, completions);
+                    }
+                    break;
+
+                case "table":
+                    if (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove")) {
+                        // Rarity types for loot table operations
+                        List<String> rarities = new ArrayList<>();
+                        for (Rarity rarity : Rarity.values()) {
+                            rarities.add(rarity.name().toLowerCase());
+                        }
+                        return StringUtil.copyPartialMatches(args[2], rarities, completions);
+                    }
+                    break;
+
+                case "new":
+                    // Suggest world names for new boss creation
+                    return StringUtil.copyPartialMatches(args[2], Arrays.asList(
+                            "world", "world_nether", "world_the_end", "lobby", "arena"
                     ), completions);
             }
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("wand") && args[1].equalsIgnoreCase("select")) {
-            // Group selection for wand
-            return StringUtil.copyPartialMatches(args[2], Arrays.asList(
-                    "test", "lushsanctuary", "santaboss" // Example groups
-            ), completions);
+        if (args.length == 4) {
+            if (args[0].equalsIgnoreCase("table") && args[1].equalsIgnoreCase("add")) {
+                // Percentage suggestions for loot table add
+                return StringUtil.copyPartialMatches(args[3], Arrays.asList(
+                        "0.1", "0.5", "1.0", "5.0", "10.0", "15.0", "20.0", "25.0", "50.0", "75.0", "100.0"
+                ), completions);
+            }
+
+            if (args[0].equalsIgnoreCase("edit")) {
+                // Config value suggestions for edit command
+                return StringUtil.copyPartialMatches(args[3], Arrays.asList(
+                        "chest-spawn-count", "respawn-timer-minutes",
+                        "hologram-text", "particles-enabled", "world-name"
+                ), completions);
+            }
         }
 
         return completions;

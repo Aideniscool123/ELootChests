@@ -20,7 +20,7 @@ public final class LootChests extends JavaPlugin implements Listener {
         this.bossManager = new BossManager(this);
 
         getCommand("eloot").setExecutor(new ElootCommand(this, bossManager, bossRegistry));
-        getCommand("eloot").setTabCompleter(new ElootTabCompleter(bossManager));
+        getCommand("eloot").setTabCompleter(new ElootTabCompleter(bossManager, bossRegistry));
 
         getLogger().info("LootChests has been enabled!");
     }
