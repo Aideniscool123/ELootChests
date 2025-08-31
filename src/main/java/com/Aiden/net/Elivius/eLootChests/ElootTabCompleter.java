@@ -42,17 +42,7 @@ public class ElootTabCompleter implements TabCompleter {
                 case "despawn":
                 case "info":
                 case "edit":
-                    // Get boss names from enum and registry
-                    List<String> bossNames = new ArrayList<>();
-
-                    // Add enum boss types
-                    for (BossType boss : BossType.values()) {
-                        bossNames.add(boss.getConfigName());
-                    }
-
-                    // Add dynamically registered bosses from registry
-                    bossNames.addAll(bossRegistry.getAllBossNames());
-
+                    List<String> bossNames = bossRegistry.getAllBossNames();
                     return StringUtil.copyPartialMatches(args[1], bossNames, completions);
 
                 case "table":
@@ -77,12 +67,7 @@ public class ElootTabCompleter implements TabCompleter {
             switch (args[0].toLowerCase()) {
                 case "wand":
                     if (args[1].equalsIgnoreCase("select")) {
-                        // Boss names for wand selection
-                        List<String> bossNames = new ArrayList<>();
-                        for (BossType boss : BossType.values()) {
-                            bossNames.add(boss.getConfigName());
-                        }
-                        bossNames.addAll(bossRegistry.getAllBossNames());
+                        List<String> bossNames = bossRegistry.getAllBossNames();
                         return StringUtil.copyPartialMatches(args[2], bossNames, completions);
                     }
                     break;
