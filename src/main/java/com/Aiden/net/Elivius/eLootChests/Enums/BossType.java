@@ -1,10 +1,6 @@
 package com.Aiden.net.Elivius.eLootChests.Enums;
 
-public enum BossType {
-    LUSH_SANCTUARY("LushSanctuary", "Main world bosses"),
-    SANTA_BOSS("SantaBoss", "Christmas event boss"),
-    KRAMPUS_BOSS("KrampusBoss", "Christmas event boss"),
-    TEST("Test", "Testing environment");
+public enum BossType {;
 
     private final String configName;
     private final String description;
