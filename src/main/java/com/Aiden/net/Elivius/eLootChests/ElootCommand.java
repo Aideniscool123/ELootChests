@@ -258,14 +258,20 @@ public class ElootCommand implements CommandExecutor, Listener {
                 break;
 
             case REMOVE:
+                Location storedFormatLocation = new Location(clickedLocation.getWorld(),
+                        clickedLocation.getBlockX(),
+                        clickedLocation.getBlockY() + 1, // +1 to match storage format
+                        clickedLocation.getBlockZ());
+
                 Location particleLocation = new Location(clickedLocation.getWorld(),
                         clickedLocation.getX(),
                         clickedLocation.getY() + 1,
                         clickedLocation.getZ());
 
-                if (bossManager.removeChestLocation(clickedLocation, selectedGroup)) { // Pass group
+                if (bossManager.removeChestLocation(clickedLocation, selectedGroup)) {
                     player.sendMessage("§aChest location removed from group: §e" + selectedGroup);
-                    bossManager.stopLocationParticles(player, particleLocation);
+                    // Stop particles for this specific location using the stored format
+                    bossManager.stopLocationParticles(player, storedFormatLocation);
                     bossManager.showLocationParticles(player, clickedLocation, ParticleType.SMOKE_LARGE, 20, false);
                 } else {
                     player.sendMessage("§cNo chest location found in group '" + selectedGroup + "' at this position!");

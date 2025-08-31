@@ -222,11 +222,13 @@ public class BossManager {
 
     public void showLocationParticles(Player player, Location location, ParticleType particleType,
                                       int durationTicks, boolean throughBlocks) {
-        // Use the enum values instead of hardcoded particles
         World world = location.getWorld();
         double x = location.getX() + 0.5;
         double y = location.getY() + 1.2;
         double z = location.getZ() + 0.5;
+
+        // Create a new Location object to ensure we have the exact reference
+        Location particleLocation = new Location(world, x, y, z);
 
         BukkitRunnable runnable = new BukkitRunnable() {
             int duration = 0;
@@ -234,15 +236,17 @@ public class BossManager {
             @Override
             public void run() {
                 if (duration > durationTicks && durationTicks != -1) {
-                    stopPlayerParticles(player);
+                    stopLocationParticles(player, location); // Use the original location
                     return;
                 }
 
                 if (player.isOnline()) {
                     if (throughBlocks) {
-                        player.spawnParticle(ParticleType.GLOW.getParticle(), x, y, z, 3, 0.1, 0.1, 0.1, 0.05);
+                        player.spawnParticle(ParticleType.GLOW.getParticle(), particleLocation.getX(),
+                                particleLocation.getY(), particleLocation.getZ(), 3, 0.1, 0.1, 0.1, 0.05);
                     } else {
-                        player.spawnParticle(particleType.getParticle(), x, y, z, 3, 0.1, 0.1, 0.1, 0.05);
+                        player.spawnParticle(particleType.getParticle(), particleLocation.getX(),
+                                particleLocation.getY(), particleLocation.getZ(), 3, 0.1, 0.1, 0.1, 0.05);
                     }
                 } else {
                     this.cancel();
@@ -252,7 +256,7 @@ public class BossManager {
         };
 
         playerParticles.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
-                .put(location, runnable);
+                .put(location, runnable); // Store with the original location key
         runnable.runTaskTimer(plugin, 0, 1);
     }
 
@@ -264,12 +268,26 @@ public class BossManager {
             }
         }
     }
-    public void stopLocationParticles(Player player, Location location) {
+    public void stopLocationParticles(Player player, Location locationToRemove) {
         Map<Location, BukkitRunnable> particles = playerParticles.get(player.getUniqueId());
         if (particles != null) {
-            BukkitRunnable runnable = particles.remove(location);
-            if (runnable != null) {
-                runnable.cancel();
+            // Find the exact location key that matches the coordinates
+            Location foundKey = null;
+            for (Location loc : particles.keySet()) {
+                if (loc.getWorld().equals(locationToRemove.getWorld()) &&
+                        loc.getBlockX() == locationToRemove.getBlockX() &&
+                        loc.getBlockY() == locationToRemove.getBlockY() &&
+                        loc.getBlockZ() == locationToRemove.getBlockZ()) {
+                    foundKey = loc;
+                    break;
+                }
+            }
+
+            if (foundKey != null) {
+                BukkitRunnable runnable = particles.remove(foundKey);
+                if (runnable != null) {
+                    runnable.cancel();
+                }
             }
         }
     }
