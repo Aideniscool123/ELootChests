@@ -24,6 +24,7 @@ public class ElootCommand implements CommandExecutor, Listener {
     private final LootChests plugin;
     private final BossManager bossManager;
     private final BossRegistry bossRegistry;
+    private final Map<Player, String> selectedBossGroups = new HashMap<>();
     private final Map<Player, WandMode> wandModes = new HashMap<>();
 
     public ElootCommand(LootChests plugin, BossManager bossManager, BossRegistry bossRegistry) {
@@ -93,8 +94,17 @@ public class ElootCommand implements CommandExecutor, Listener {
                     return false;
                 }
                 String groupName = args[2];
-                player.sendMessage("§aSelected group: §e" + groupName);
+
+                if (!bossRegistry.bossExists(groupName)) {
+                    player.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+                    player.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+                    return false;
+                }
+
+                selectedBossGroups.put(player, groupName);
                 wandModes.put(player, WandMode.ADD);
+                player.sendMessage("§aSelected group: §e" + groupName);
+                player.sendMessage("§7Wand mode set to: §e" + WandMode.ADD.getDisplayName());
                 break;
 
             default:
@@ -150,11 +160,17 @@ public class ElootCommand implements CommandExecutor, Listener {
     }
 
     private void showNearbyLocations(Player player, int radius, WandMode mode) {
-        List<Location> allLocations = bossManager.getSavedChestLocations();
+        String selectedGroup = selectedBossGroups.get(player);
+        if (selectedGroup == null) {
+            player.sendMessage("§cYou must select a boss group first!");
+            return;
+        }
+
+        List<Location> groupLocations = bossManager.getSavedChestLocations(selectedGroup);
         Location playerLoc = player.getLocation();
 
         int count = 0;
-        for (Location loc : allLocations) {
+        for (Location loc : groupLocations) {
             if (loc.getWorld().equals(playerLoc.getWorld()) &&
                     loc.distance(playerLoc) <= radius) {
 
@@ -165,7 +181,7 @@ public class ElootCommand implements CommandExecutor, Listener {
         }
 
         String durationMsg = mode.getDurationTicks() == -1 ? "until mode change" : "for 30 seconds";
-        player.sendMessage("§aShowing §e" + count + "§a chest locations within §e" + radius + "§a blocks (§7" + durationMsg + "§a)");
+        player.sendMessage("§aShowing §e" + count + "§a chest locations from group '§e" + selectedGroup + "§a' within §e" + radius + "§a blocks (§7" + durationMsg + "§a)");
     }
 
     private boolean giveWand(CommandSender sender) {
@@ -189,7 +205,8 @@ public class ElootCommand implements CommandExecutor, Listener {
                     "§7Right-click blocks to set",
                     "§7chest locations for loot",
                     "§7chest configuration.",
-                    "§8Mode: " + WandMode.ADD.getDisplayName()
+                    "§8Mode: " + WandMode.ADD.getDisplayName(),
+                    "§8Group: None"
             ));
             wand.setItemMeta(meta);
         }
@@ -221,6 +238,13 @@ public class ElootCommand implements CommandExecutor, Listener {
             return;
         }
 
+        // Check if a group is selected
+        String selectedGroup = selectedBossGroups.get(player);
+        if (selectedGroup == null) {
+            player.sendMessage("§cYou must first select a boss group with §e/eloot wand select <group>");
+            return;
+        }
+
         event.setCancelled(true);
         Location clickedLocation = event.getClickedBlock().getLocation();
         WandMode mode = wandModes.getOrDefault(player, WandMode.ADD);
@@ -228,32 +252,29 @@ public class ElootCommand implements CommandExecutor, Listener {
         switch (mode) {
             case ADD:
                 plugin.showChestLocation(clickedLocation);
-                bossManager.saveChestLocation(clickedLocation);
-                player.sendMessage("§aLocation saved! Chest added to coordinates.");
-                updateWandLore(player, mode.getDisplayName());
+                bossManager.saveChestLocation(clickedLocation, selectedGroup); // Pass group
+                player.sendMessage("§aLocation saved to group: §e" + selectedGroup);
+                updateWandLore(player, mode.getDisplayName(), selectedGroup); // Update lore too
                 break;
 
             case REMOVE:
-                // Create location with correct Y+1 for particle matching
                 Location particleLocation = new Location(clickedLocation.getWorld(),
                         clickedLocation.getX(),
                         clickedLocation.getY() + 1,
                         clickedLocation.getZ());
 
-                if (bossManager.removeChestLocation(clickedLocation)) {
-                    player.sendMessage("§aChest location removed!");
-                    // Stop particles for this removed location (using Y+1 position)
+                if (bossManager.removeChestLocation(clickedLocation, selectedGroup)) { // Pass group
+                    player.sendMessage("§aChest location removed from group: §e" + selectedGroup);
                     bossManager.stopLocationParticles(player, particleLocation);
-                    // Show confirmation particles
                     bossManager.showLocationParticles(player, clickedLocation, ParticleType.SMOKE_LARGE, 20, false);
                 } else {
-                    player.sendMessage("§cNo chest location found at this position!");
+                    player.sendMessage("§cNo chest location found in group '" + selectedGroup + "' at this position!");
                 }
                 break;
 
             case SHOW:
                 plugin.showChestLocation(clickedLocation);
-                player.sendMessage("§aShowing this chest location");
+                player.sendMessage("§aShowing chest location for group: §e" + selectedGroup);
                 break;
         }
     }
@@ -307,17 +328,17 @@ public class ElootCommand implements CommandExecutor, Listener {
                 item.getItemMeta().getDisplayName().equals("§6Loot Chest Wand");
     }
 
-    private void updateWandLore(Player player, String mode) {
+    private void updateWandLore(Player player, String mode, String group) {
         ItemStack wand = player.getInventory().getItemInMainHand();
         if (wand.getType() == Material.STICK && wand.hasItemMeta()) {
             ItemMeta meta = wand.getItemMeta();
-            List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
-
-            if (lore.size() >= 4) {
-                lore.set(3, "§8Mode: " + mode);
-            } else {
-                lore.add("§8Mode: " + mode);
-            }
+            List<String> lore = new ArrayList<>(Arrays.asList(
+                    "§7Right-click blocks to set",
+                    "§7chest locations for loot",
+                    "§7chest configuration.",
+                    "§8Mode: " + mode,
+                    "§8Group: " + group
+            ));
 
             meta.setLore(lore);
             wand.setItemMeta(meta);

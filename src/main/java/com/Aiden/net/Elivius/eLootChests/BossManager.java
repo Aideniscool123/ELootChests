@@ -143,45 +143,63 @@ public class BossManager {
         }
     }
 
-    public void saveChestLocation(Location location) {
-        YamlConfiguration coords = getCoordinates();
-        List<String> locations = coords.getStringList("chest-locations");
+    public void saveChestLocation(Location location, String groupName) {
+        File groupFolder = new File(plugin.getDataFolder(), groupName.toLowerCase());
+        File coordsFile = new File(groupFolder, "coordinates.yml");
+        YamlConfiguration coords = YamlConfiguration.loadConfiguration(coordsFile);
 
+        List<String> locations = coords.getStringList("chest-locations");
         String locationString = location.getWorld().getName() + "," +
                 location.getBlockX() + "," +
-                (location.getBlockY() + 1) + "," + // +1 to Y value
+                (location.getBlockY() + 1) + "," +
                 location.getBlockZ();
 
         if (!locations.contains(locationString)) {
             locations.add(locationString);
             coords.set("chest-locations", locations);
-            saveCoordinates(coords);
-            plugin.getLogger().info("Saved chest location: " + locationString);
+            try {
+                coords.save(coordsFile);
+                plugin.getLogger().info("Saved chest location for group " + groupName + ": " + locationString);
+            } catch (IOException e) {
+                plugin.getLogger().warning("Failed to save coordinates for group: " + groupName);
+            }
         }
     }
 
-    public boolean removeChestLocation(Location location) {
-        YamlConfiguration coords = getCoordinates();
-        List<String> locations = coords.getStringList("chest-locations");
+    public boolean removeChestLocation(Location location, String groupName) {
+        File groupFolder = new File(plugin.getDataFolder(), groupName.toLowerCase());
+        File coordsFile = new File(groupFolder, "coordinates.yml");
+        YamlConfiguration coords = YamlConfiguration.loadConfiguration(coordsFile);
 
-        // Use Y+1 to match how locations are stored
+        List<String> locations = coords.getStringList("chest-locations");
         String locationString = location.getWorld().getName() + "," +
                 location.getBlockX() + "," +
-                (location.getBlockY() + 1) + "," + // +1 to match storage
+                (location.getBlockY() + 1) + "," +
                 location.getBlockZ();
 
         boolean removed = locations.remove(locationString);
         if (removed) {
             coords.set("chest-locations", locations);
-            saveCoordinates(coords);
-            plugin.getLogger().info("Removed chest location: " + locationString);
+            try {
+                coords.save(coordsFile);
+                plugin.getLogger().info("Removed chest location from group " + groupName + ": " + locationString);
+            } catch (IOException e) {
+                plugin.getLogger().warning("Failed to save coordinates for group: " + groupName);
+            }
         }
 
         return removed;
     }
 
-    public List<Location> getSavedChestLocations() {
-        YamlConfiguration coords = getCoordinates();
+    public List<Location> getSavedChestLocations(String groupName) {
+        File groupFolder = new File(plugin.getDataFolder(), groupName.toLowerCase());
+        File coordsFile = new File(groupFolder, "coordinates.yml");
+
+        if (!coordsFile.exists()) {
+            return new ArrayList<>();
+        }
+
+        YamlConfiguration coords = YamlConfiguration.loadConfiguration(coordsFile);
         List<String> locationStrings = coords.getStringList("chest-locations");
         List<Location> locations = new ArrayList<>();
 
