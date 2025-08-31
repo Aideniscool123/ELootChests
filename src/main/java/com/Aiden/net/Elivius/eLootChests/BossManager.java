@@ -23,6 +23,67 @@ public class BossManager {
         this.testFolder = new File(plugin.getDataFolder(), "test");
         createTestFolder();
     }
+    public boolean createBossGroup(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        if (bossFolder.exists()) {
+            plugin.getLogger().warning("Boss folder already exists: " + bossName);
+            return false;
+        }
+
+        if (!bossFolder.mkdirs()) {
+            plugin.getLogger().warning("Failed to create boss folder: " + bossName);
+            return false;
+        }
+
+        // Create config.yml
+        File configFile = new File(bossFolder, "config.yml");
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("chest-spawn-count", 10);
+        config.set("respawn-timer-minutes", 60);
+        config.set("hologram-text", bossName + " Chest");
+        config.set("particles-enabled", true);
+        config.set("world-name", "world");
+
+        // Create coordinates.yml
+        File coordsFile = new File(bossFolder, "coordinates.yml");
+        YamlConfiguration coords = new YamlConfiguration();
+        coords.set("chest-locations", new ArrayList<String>());
+
+        // Create loottable.yml
+        File lootFile = new File(bossFolder, "loottable.yml");
+        YamlConfiguration loot = new YamlConfiguration();
+        for (Rarity rarity : Rarity.values()) {
+            loot.set(rarity.name().toLowerCase() + ".items", new ArrayList<String>());
+            loot.set(rarity.name().toLowerCase() + ".spawn-percentage", rarity.getSpawnPercentage());
+        }
+
+        try {
+            config.save(configFile);
+            coords.save(coordsFile);
+            loot.save(lootFile);
+            plugin.getLogger().info("Created new boss group: " + bossName);
+            return true;
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to create files for boss: " + bossName);
+            // Clean up folder if creation failed
+            if (bossFolder.exists()) {
+                deleteFolder(bossFolder);
+            }
+            return false;
+        }
+    }
+
+    private void deleteFolder(File folder) {
+        if (folder.isDirectory()) {
+            File[] files = folder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    deleteFolder(file);
+                }
+            }
+        }
+        folder.delete();
+    }
 
     private void createTestFolder() {
         if (!testFolder.exists()) {

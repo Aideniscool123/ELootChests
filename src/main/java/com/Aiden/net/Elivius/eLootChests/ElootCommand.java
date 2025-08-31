@@ -40,16 +40,22 @@ public class ElootCommand implements CommandExecutor, Listener {
             return true;
         }
 
-        if (args[0].equalsIgnoreCase("wand")) {
-            if (!(sender instanceof Player)) {
-                sender.sendMessage("§cThis command can only be used by players!");
-                return true;
-            }
-            return handleWandCommand((Player) sender, args);
-        }
+        switch (args[0].toLowerCase()) {
+            case "wand":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("§cThis command can only be used by players!");
+                    return true;
+                }
+                return handleWandCommand((Player) sender, args);
 
-        sender.sendMessage("§cUnknown sub-command. Use: /eloot wand");
-        return true;
+            case "new":
+                return handleNewCommand(sender, args);
+
+            // We'll add other cases later
+            default:
+                sender.sendMessage("§cUnknown sub-command. Use: /eloot wand|new");
+                return true;
+        }
     }
 
     private boolean handleWandCommand(Player player, String[] args) {
@@ -97,6 +103,50 @@ public class ElootCommand implements CommandExecutor, Listener {
         }
 
         return true;
+    }
+
+    private boolean handleNewCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("eloot.admin") && !sender.isOp()) {
+            sender.sendMessage("§cYou don't have permission to create new boss groups!");
+            return true;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /eloot new <bossName>");
+            sender.sendMessage("§7Available templates: " + getBossTypeNames());
+            return true;
+        }
+
+        String bossName = args[1];
+
+        // Check if boss already exists
+        if (bossRegistry.bossExists(bossName)) {
+            sender.sendMessage("§cA boss with that name already exists!");
+            return true;
+        }
+
+        // Create the new boss group
+        if (bossManager.createBossGroup(bossName)) {
+            // Register the boss in the registry
+            if (bossRegistry.addBoss(bossName)) {
+                sender.sendMessage("§aSuccessfully created new boss group: §e" + bossName);
+                sender.sendMessage("§7Use §e/eloot wand select " + bossName + " §7to start adding chest locations");
+            } else {
+                sender.sendMessage("§cFailed to register boss in registry!");
+            }
+        } else {
+            sender.sendMessage("§cFailed to create boss group files!");
+        }
+
+        return true;
+    }
+
+    private String getBossTypeNames() {
+        StringBuilder names = new StringBuilder();
+        for (BossType bossType : BossType.values()) {
+            names.append(bossType.getConfigName()).append(", ");
+        }
+        return names.length() > 0 ? names.substring(0, names.length() - 2) : "None";
     }
 
     private void showNearbyLocations(Player player, int radius, WandMode mode) {
