@@ -24,8 +24,8 @@ public class ElootCommand implements CommandExecutor, Listener {
     private final LootChests plugin;
     private final BossManager bossManager;
     private final BossRegistry bossRegistry;
-    private final Map<Player, String> selectedBossGroups = new HashMap<>();
     private final Map<Player, WandMode> wandModes = new HashMap<>();
+    private final Map<Player, String> selectedBossGroups = new HashMap<>();
 
     public ElootCommand(LootChests plugin, BossManager bossManager, BossRegistry bossRegistry) {
         this.plugin = plugin;
@@ -52,9 +52,11 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "new":
                 return handleNewCommand(sender, args);
 
-            // We'll add other cases later
+            case "table":
+                return handleTableCommand(sender, args);
+
             default:
-                sender.sendMessage("§cUnknown sub-command. Use: /eloot wand|new");
+                sender.sendMessage("§cUnknown sub-command. Use: /eloot wand|new|table");
                 return true;
         }
     }
@@ -95,6 +97,7 @@ public class ElootCommand implements CommandExecutor, Listener {
                 }
                 String groupName = args[2];
 
+                // Validate the group exists
                 if (!bossRegistry.bossExists(groupName)) {
                     player.sendMessage("§cBoss group '" + groupName + "' does not exist!");
                     player.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
@@ -105,6 +108,7 @@ public class ElootCommand implements CommandExecutor, Listener {
                 wandModes.put(player, WandMode.ADD);
                 player.sendMessage("§aSelected group: §e" + groupName);
                 player.sendMessage("§7Wand mode set to: §e" + WandMode.ADD.getDisplayName());
+                updateWandLore(player, WandMode.ADD.getDisplayName(), groupName);
                 break;
 
             default:
@@ -151,12 +155,77 @@ public class ElootCommand implements CommandExecutor, Listener {
         return true;
     }
 
-    private String getBossTypeNames() {
-        StringBuilder names = new StringBuilder();
-        for (BossType bossType : BossType.values()) {
-            names.append(bossType.getConfigName()).append(", ");
+    private boolean handleTableCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be used by players!");
+            return true;
         }
-        return names.length() > 0 ? names.substring(0, names.length() - 2) : "None";
+
+        Player player = (Player) sender;
+
+        if (!player.hasPermission("eloot.admin") && !player.isOp()) {
+            player.sendMessage("§cYou don't have permission to modify loot tables!");
+            return true;
+        }
+
+        if (args.length < 3) {
+            player.sendMessage("§cUsage: /eloot table <group> <rarity> [percentage]");
+            player.sendMessage("§7Rarities: " + getRarityNames());
+            return true;
+        }
+
+        String groupName = args[1];
+        String rarityName = args[2].toUpperCase();
+        double percentage = -1;
+
+        // Parse percentage if provided
+        if (args.length >= 4) {
+            try {
+                percentage = Double.parseDouble(args[3]);
+                if (percentage < 0.1 || percentage > 100) {
+                    player.sendMessage("§cPercentage must be between 0.1 and 100!");
+                    return true;
+                }
+            } catch (NumberFormatException e) {
+                player.sendMessage("§cInvalid percentage! Must be a number between 0.1 and 100.");
+                return true;
+            }
+        }
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            player.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            player.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Validate rarity
+        Rarity rarity;
+        try {
+            rarity = Rarity.valueOf(rarityName);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage("§cInvalid rarity! Available: " + getRarityNames());
+            return true;
+        }
+
+        // Check if player is holding an item
+        ItemStack heldItem = player.getInventory().getItemInMainHand();
+        if (heldItem == null || heldItem.getType() == Material.AIR) {
+            player.sendMessage("§cYou must be holding an item to add to the loot table!");
+            return true;
+        }
+
+        // Add item to loot table
+        if (bossManager.addItemToLootTable(groupName, rarity, heldItem, percentage)) {
+            player.sendMessage("§aSuccessfully added item to §e" + rarity.getFormattedName() + "§a rarity for group: §e" + groupName);
+            if (percentage > 0) {
+                player.sendMessage("§7Spawn percentage: §e" + percentage + "%");
+            }
+        } else {
+            player.sendMessage("§cFailed to add item to loot table! It might already exist.");
+        }
+
+        return true;
     }
 
     private void showNearbyLocations(Player player, int radius, WandMode mode) {
@@ -252,12 +321,13 @@ public class ElootCommand implements CommandExecutor, Listener {
         switch (mode) {
             case ADD:
                 plugin.showChestLocation(clickedLocation);
-                bossManager.saveChestLocation(clickedLocation, selectedGroup); // Pass group
+                bossManager.saveChestLocation(clickedLocation, selectedGroup);
                 player.sendMessage("§aLocation saved to group: §e" + selectedGroup);
-                updateWandLore(player, mode.getDisplayName(), selectedGroup); // Update lore too
+                updateWandLore(player, mode.getDisplayName(), selectedGroup);
                 break;
 
             case REMOVE:
+                // Use the exact same location format as stored
                 Location storedFormatLocation = new Location(clickedLocation.getWorld(),
                         clickedLocation.getBlockX(),
                         clickedLocation.getBlockY() + 1, // +1 to match storage format
@@ -290,6 +360,7 @@ public class ElootCommand implements CommandExecutor, Listener {
         Player player = event.getPlayer();
         if (wandModes.containsKey(player)) {
             wandModes.remove(player);
+            selectedBossGroups.remove(player);
             bossManager.stopPlayerParticles(player);
         }
     }
@@ -349,5 +420,21 @@ public class ElootCommand implements CommandExecutor, Listener {
             meta.setLore(lore);
             wand.setItemMeta(meta);
         }
+    }
+
+    private String getBossTypeNames() {
+        StringBuilder names = new StringBuilder();
+        for (BossType bossType : BossType.values()) {
+            names.append(bossType.getConfigName()).append(", ");
+        }
+        return names.length() > 0 ? names.substring(0, names.length() - 2) : "None";
+    }
+
+    private String getRarityNames() {
+        StringBuilder names = new StringBuilder();
+        for (Rarity rarity : Rarity.values()) {
+            names.append(rarity.name().toLowerCase()).append(", ");
+        }
+        return names.length() > 0 ? names.substring(0, names.length() - 2) : "None";
     }
 }

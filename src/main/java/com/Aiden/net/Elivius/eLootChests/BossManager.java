@@ -4,15 +4,25 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
 import com.Aiden.net.Elivius.eLootChests.Enums.*;
+import org.bukkit.util.io.BukkitObjectOutputStream;
+import org.bukkit.util.io.BukkitObjectInputStream;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.util.*;
 
+/**
+ * @author AidenTheStitch
+ * @file BossManager.java
+ * @description Manages boss configurations, chest locations, and loot tables
+ */
 public class BossManager {
     private final JavaPlugin plugin;
     private final File testFolder;
@@ -22,67 +32,6 @@ public class BossManager {
         this.plugin = plugin;
         this.testFolder = new File(plugin.getDataFolder(), "test");
         createTestFolder();
-    }
-    public boolean createBossGroup(String bossName) {
-        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
-        if (bossFolder.exists()) {
-            plugin.getLogger().warning("Boss folder already exists: " + bossName);
-            return false;
-        }
-
-        if (!bossFolder.mkdirs()) {
-            plugin.getLogger().warning("Failed to create boss folder: " + bossName);
-            return false;
-        }
-
-        // Create config.yml
-        File configFile = new File(bossFolder, "config.yml");
-        YamlConfiguration config = new YamlConfiguration();
-        config.set("chest-spawn-count", 10);
-        config.set("respawn-timer-minutes", 60);
-        config.set("hologram-text", bossName + " Chest");
-        config.set("particles-enabled", true);
-        config.set("world-name", "world");
-
-        // Create coordinates.yml
-        File coordsFile = new File(bossFolder, "coordinates.yml");
-        YamlConfiguration coords = new YamlConfiguration();
-        coords.set("chest-locations", new ArrayList<String>());
-
-        // Create loottable.yml
-        File lootFile = new File(bossFolder, "loottable.yml");
-        YamlConfiguration loot = new YamlConfiguration();
-        for (Rarity rarity : Rarity.values()) {
-            loot.set(rarity.name().toLowerCase() + ".items", new ArrayList<String>());
-            loot.set(rarity.name().toLowerCase() + ".spawn-percentage", rarity.getSpawnPercentage());
-        }
-
-        try {
-            config.save(configFile);
-            coords.save(coordsFile);
-            loot.save(lootFile);
-            plugin.getLogger().info("Created new boss group: " + bossName);
-            return true;
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to create files for boss: " + bossName);
-            // Clean up folder if creation failed
-            if (bossFolder.exists()) {
-                deleteFolder(bossFolder);
-            }
-            return false;
-        }
-    }
-
-    private void deleteFolder(File folder) {
-        if (folder.isDirectory()) {
-            File[] files = folder.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    deleteFolder(file);
-                }
-            }
-        }
-        folder.delete();
     }
 
     private void createTestFolder() {
@@ -132,8 +81,7 @@ public class BossManager {
         YamlConfiguration loot = new YamlConfiguration();
 
         for (Rarity rarity : Rarity.values()) {
-            loot.set(rarity.name().toLowerCase() + ".items", new ArrayList<String>());
-            loot.set(rarity.name().toLowerCase() + ".spawn-percentage", rarity.getSpawnPercentage());
+            loot.set(rarity.name().toLowerCase() + ".items", new ArrayList<Map<String, Object>>());
         }
 
         try {
@@ -141,6 +89,68 @@ public class BossManager {
         } catch (IOException e) {
             plugin.getLogger().warning("Failed to create loot table for test folder");
         }
+    }
+
+    public boolean createBossGroup(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        if (bossFolder.exists()) {
+            plugin.getLogger().warning("Boss folder already exists: " + bossName);
+            return false;
+        }
+
+        if (!bossFolder.mkdirs()) {
+            plugin.getLogger().warning("Failed to create boss folder: " + bossName);
+            return false;
+        }
+
+        // Create config.yml
+        File configFile = new File(bossFolder, "config.yml");
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("chest-spawn-count", 10);
+        config.set("respawn-timer-minutes", 60);
+        config.set("hologram-text", bossName + " Chest");
+        config.set("particles-enabled", true);
+        config.set("world-name", "world");
+
+        // Create coordinates.yml
+        File coordsFile = new File(bossFolder, "coordinates.yml");
+        YamlConfiguration coords = new YamlConfiguration();
+        coords.set("chest-locations", new ArrayList<String>());
+
+        // Create loottable.yml - WITHOUT rarity-level percentages
+        File lootFile = new File(bossFolder, "loottable.yml");
+        YamlConfiguration loot = new YamlConfiguration();
+        for (Rarity rarity : Rarity.values()) {
+            String rarityKey = rarity.name().toLowerCase();
+            loot.set(rarityKey + ".items", new ArrayList<Map<String, Object>>());
+        }
+
+        try {
+            config.save(configFile);
+            coords.save(coordsFile);
+            loot.save(lootFile);
+            plugin.getLogger().info("Created new boss group: " + bossName);
+            return true;
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to create files for boss: " + bossName);
+            // Clean up folder if creation failed
+            if (bossFolder.exists()) {
+                deleteFolder(bossFolder);
+            }
+            return false;
+        }
+    }
+
+    private void deleteFolder(File folder) {
+        if (folder.isDirectory()) {
+            File[] files = folder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    deleteFolder(file);
+                }
+            }
+        }
+        folder.delete();
     }
 
     public void saveChestLocation(Location location, String groupName) {
@@ -220,6 +230,107 @@ public class BossManager {
         return locations;
     }
 
+    public boolean addItemToLootTable(String bossName, Rarity rarity, ItemStack item, double customPercentage) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            return false;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+        String rarityKey = rarity.name().toLowerCase();
+
+        // Get current items list
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (loot.contains(rarityKey + ".items")) {
+            items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+        }
+
+        // Convert item to base64 string
+        String itemString = itemStackToBase64(item);
+
+        // Check if item already exists in loot table
+        for (Map<String, Object> itemData : items) {
+            if (itemData.get("item").equals(itemString)) {
+                return false; // Item already exists
+            }
+        }
+
+        // Use custom percentage or default to the rarity's default if not provided
+        double finalPercentage = (customPercentage > 0) ? customPercentage : rarity.getDefaultPercentage();
+
+        // Create new item data with percentage
+        Map<String, Object> newItem = new HashMap<>();
+        newItem.put("item", itemString);
+        newItem.put("percentage", finalPercentage);
+
+        // Add the item
+        items.add(newItem);
+        loot.set(rarityKey + ".items", items);
+
+        try {
+            loot.save(lootFile);
+            return true;
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to save loot table for boss: " + bossName);
+            return false;
+        }
+    }
+
+    private String itemStackToBase64(ItemStack item) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
+            dataOutput.writeObject(item);
+            dataOutput.close();
+            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to serialize item to base64: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public ItemStack itemStackFromBase64(String data) {
+        try {
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(data));
+            BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
+            ItemStack item = (ItemStack) dataInput.readObject();
+            dataInput.close();
+            return item;
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to deserialize item from base64: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public Map<ItemStack, Double> getItemsWithPercentages(String bossName, Rarity rarity) {
+        Map<ItemStack, Double> itemsWithPercentages = new HashMap<>();
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            return itemsWithPercentages;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+        String rarityKey = rarity.name().toLowerCase();
+
+        if (loot.contains(rarityKey + ".items")) {
+            List<Map<String, Object>> itemDataList = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+            for (Map<String, Object> itemData : itemDataList) {
+                String base64Item = (String) itemData.get("item");
+                double percentage = (Double) itemData.getOrDefault("percentage", 50.0);
+                ItemStack item = itemStackFromBase64(base64Item);
+                if (item != null) {
+                    itemsWithPercentages.put(item, percentage);
+                }
+            }
+        }
+
+        return itemsWithPercentages;
+    }
+
     public void showLocationParticles(Player player, Location location, ParticleType particleType,
                                       int durationTicks, boolean throughBlocks) {
         World world = location.getWorld();
@@ -236,7 +347,7 @@ public class BossManager {
             @Override
             public void run() {
                 if (duration > durationTicks && durationTicks != -1) {
-                    stopLocationParticles(player, location); // Use the original location
+                    stopLocationParticles(player, location);
                     return;
                 }
 
@@ -256,7 +367,7 @@ public class BossManager {
         };
 
         playerParticles.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
-                .put(location, runnable); // Store with the original location key
+                .put(location, runnable);
         runnable.runTaskTimer(plugin, 0, 1);
     }
 
@@ -268,6 +379,7 @@ public class BossManager {
             }
         }
     }
+
     public void stopLocationParticles(Player player, Location locationToRemove) {
         Map<Location, BukkitRunnable> particles = playerParticles.get(player.getUniqueId());
         if (particles != null) {
@@ -337,16 +449,23 @@ public class BossManager {
         }
     }
 
-    public void validateRarityPercentages() {
-        YamlConfiguration loot = getLootTable();
+    public void validateRarityPercentages(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            return;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
         double total = 0;
 
         for (Rarity rarity : Rarity.values()) {
-            total += loot.getDouble(rarity.name().toLowerCase() + ".spawn-percentage", 0);
+            total += loot.getDouble(rarity.name().toLowerCase() + ".spawn-percentage", rarity.getDefaultPercentage());
         }
 
         if (Math.abs(total - 100.0) > 0.1) {
-            plugin.getLogger().warning("Rarity percentages don't sum to 100%! Total: " + total);
+            plugin.getLogger().warning("Rarity percentages for boss '" + bossName + "' don't sum to 100%! Total: " + total);
         }
     }
 
