@@ -3,25 +3,34 @@ package com.Aiden.net.Elivius.eLootChests.Enums;
 import org.bukkit.ChatColor;
 
 public enum Rarity {
-    COMMON("Common", ChatColor.GRAY, 70.0),
-    RARE("Rare", ChatColor.BLUE, 20.0),
-    EPIC("Epic", ChatColor.DARK_PURPLE, 7.0),
-    LEGENDARY("Legendary", ChatColor.GOLD, 2.5),
-    MYTHIC("Mythic", ChatColor.LIGHT_PURPLE, 0.4),
-    GODLIKE("Godlike", ChatColor.RED, 0.1);
+    COMMON("Common", ChatColor.GREEN),
+    RARE("Rare", ChatColor.AQUA),
+    EPIC("Epic", ChatColor.RED),
+    LEGENDARY("Legendary", ChatColor.GOLD),
+    MYTHIC("Mythic", ChatColor.DARK_PURPLE),
+    GODLIKE("Godlike", ChatColor.DARK_RED);
 
     private final String name;
     private final ChatColor color;
-    private final double spawnPercentage;
 
-    Rarity(String name, ChatColor color, double spawnPercentage) {
+    Rarity(String name, ChatColor color) {
         this.name = name;
         this.color = color;
-        this.spawnPercentage = spawnPercentage;
     }
 
     public String getName() { return name; }
     public ChatColor getColor() { return color; }
-    public double getSpawnPercentage() { return spawnPercentage; }
     public String getFormattedName() { return color + name; }
+
+    public double getDefaultPercentage() {
+        return switch (this) {
+            case COMMON -> 70.0;
+            case RARE -> 20.0;
+            case EPIC -> 7.0;
+            case LEGENDARY -> 2.5;
+            case MYTHIC -> 0.4;
+            case GODLIKE -> 0.1;
+            default -> 0.0;
+        };
+    }
 }
