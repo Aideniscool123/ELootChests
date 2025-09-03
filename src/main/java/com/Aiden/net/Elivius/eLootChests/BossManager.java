@@ -18,77 +18,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.util.*;
 
-/**
- * @author AidenTheStitch
- * @file BossManager.java
- * @description Manages boss configurations, chest locations, and loot tables
- */
 public class BossManager {
     private final JavaPlugin plugin;
-    private final File testFolder;
     private final Map<UUID, Map<Location, BukkitRunnable>> playerParticles = new HashMap<>();
 
     public BossManager(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.testFolder = new File(plugin.getDataFolder(), "test");
-        createTestFolder();
-    }
-
-    private void createTestFolder() {
-        if (!testFolder.exists()) {
-            testFolder.mkdirs();
-            createDefaultFiles();
-        }
-    }
-
-    private void createDefaultFiles() {
-        createDefaultConfig();
-        createDefaultCoordinates();
-        createDefaultLootTable();
-    }
-
-    private void createDefaultConfig() {
-        File configFile = new File(testFolder, "config.yml");
-        YamlConfiguration config = new YamlConfiguration();
-
-        config.set("chest-spawn-count", 10);
-        config.set("respawn-timer-minutes", 60);
-        config.set("hologram-text", "Test Loot Chest");
-        config.set("particles-enabled", true);
-
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to create config for test folder");
-        }
-    }
-
-    private void createDefaultCoordinates() {
-        File coordsFile = new File(testFolder, "coordinates.yml");
-        YamlConfiguration coords = new YamlConfiguration();
-
-        coords.set("chest-locations", new ArrayList<String>());
-
-        try {
-            coords.save(coordsFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to create coordinates for test folder");
-        }
-    }
-
-    private void createDefaultLootTable() {
-        File lootFile = new File(testFolder, "loottable.yml");
-        YamlConfiguration loot = new YamlConfiguration();
-
-        for (Rarity rarity : Rarity.values()) {
-            loot.set(rarity.name().toLowerCase() + ".items", new ArrayList<Map<String, Object>>());
-        }
-
-        try {
-            loot.save(lootFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to create loot table for test folder");
-        }
     }
 
     public boolean createBossGroup(String bossName) {
@@ -413,63 +348,5 @@ public class BossManager {
         playerParticles.clear();
     }
 
-    public YamlConfiguration getConfig() {
-        return YamlConfiguration.loadConfiguration(new File(testFolder, "config.yml"));
-    }
 
-    public YamlConfiguration getCoordinates() {
-        return YamlConfiguration.loadConfiguration(new File(testFolder, "coordinates.yml"));
-    }
-
-    public YamlConfiguration getLootTable() {
-        return YamlConfiguration.loadConfiguration(new File(testFolder, "loottable.yml"));
-    }
-
-    public void saveConfig(YamlConfiguration config) {
-        try {
-            config.save(new File(testFolder, "config.yml"));
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save config for test folder");
-        }
-    }
-
-    public void saveCoordinates(YamlConfiguration coords) {
-        try {
-            coords.save(new File(testFolder, "coordinates.yml"));
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save coordinates for test folder");
-        }
-    }
-
-    public void saveLootTable(YamlConfiguration loot) {
-        try {
-            loot.save(new File(testFolder, "loottable.yml"));
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save loot table for test folder");
-        }
-    }
-
-    public void validateRarityPercentages(String bossName) {
-        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
-        File lootFile = new File(bossFolder, "loottable.yml");
-
-        if (!lootFile.exists()) {
-            return;
-        }
-
-        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
-        double total = 0;
-
-        for (Rarity rarity : Rarity.values()) {
-            total += loot.getDouble(rarity.name().toLowerCase() + ".spawn-percentage", rarity.getDefaultPercentage());
-        }
-
-        if (Math.abs(total - 100.0) > 0.1) {
-            plugin.getLogger().warning("Rarity percentages for boss '" + bossName + "' don't sum to 100%! Total: " + total);
-        }
-    }
-
-    public File getTestFolder() {
-        return testFolder;
-    }
 }
