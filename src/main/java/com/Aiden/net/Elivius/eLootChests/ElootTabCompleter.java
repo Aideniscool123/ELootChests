@@ -44,13 +44,13 @@ public class ElootTabCompleter implements TabCompleter {
                 case "edit":
                     List<String> bossNames = bossRegistry.getAllBossNames();
                     return StringUtil.copyPartialMatches(args[1], bossNames, completions);
-
                 case "table":
-                    // Chest action commands
                     List<String> actions = new ArrayList<>();
                     for (ChestAction action : ChestAction.values()) {
                         actions.add(action.getCommand());
                     }
+                    actions.add("remove");
+                    actions.add("list");
                     return StringUtil.copyPartialMatches(args[1], actions, completions);
 
                 case "new":

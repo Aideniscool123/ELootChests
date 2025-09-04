@@ -213,6 +213,83 @@ public class BossManager {
         }
     }
 
+    public boolean removeItemFromLootTable(String bossName, ItemStack item) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            return false;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+        boolean removed = false;
+
+        // Convert item to base64 for comparison
+        String itemString = itemStackToBase64(item);
+
+        // Check all rarity groups for this item
+        for (Rarity rarity : Rarity.values()) {
+            String rarityKey = rarity.name().toLowerCase();
+
+            if (loot.contains(rarityKey + ".items")) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+                Iterator<Map<String, Object>> iterator = items.iterator();
+
+                while (iterator.hasNext()) {
+                    Map<String, Object> itemData = iterator.next();
+                    if (itemData.get("item").equals(itemString)) {
+                        iterator.remove();
+                        removed = true;
+                        break;
+                    }
+                }
+
+                if (!items.isEmpty()) {
+                    loot.set(rarityKey + ".items", items);
+                } else {
+                    loot.set(rarityKey + ".items", null);
+                }
+            }
+        }
+
+        if (removed) {
+            try {
+                loot.save(lootFile);
+                return true;
+            } catch (IOException e) {
+                plugin.getLogger().warning("Failed to save loot table for boss: " + bossName);
+            }
+        }
+
+        return false;
+    }
+    public Map<Rarity, Integer> getLootTableSummary(String bossName) {
+        Map<Rarity, Integer> itemCounts = new HashMap<>();
+
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            return itemCounts;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+
+        for (Rarity rarity : Rarity.values()) {
+            String rarityKey = rarity.name().toLowerCase();
+            int count = 0;
+
+            if (loot.contains(rarityKey + ".items")) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+                count = items != null ? items.size() : 0;
+            }
+
+            itemCounts.put(rarity, count);
+        }
+
+        return itemCounts;
+    }
+
     private String itemStackToBase64(ItemStack item) {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -347,6 +424,4 @@ public class BossManager {
         }
         playerParticles.clear();
     }
-
-
 }

@@ -168,6 +168,45 @@ public class ElootCommand implements CommandExecutor, Listener {
             return true;
         }
 
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /eloot table <add|remove|list> [arguments]");
+            player.sendMessage("§7- /eloot table <group> <rarity> [percentage]");
+            player.sendMessage("§7- /eloot table remove <group>");
+            player.sendMessage("§7- /eloot table list <group>");
+            return true;
+        }
+
+        // Handle sub-commands: remove and list
+        if (args.length >= 2) {
+            switch (args[1].toLowerCase()) {
+                case "remove":
+                    return handleTableRemoveCommand(sender, args);
+                case "list":
+                    return handleTableListCommand(sender, args);
+                case "add":
+                    // Handle add specifically if they use "table add" instead of just "table"
+                    if (args.length < 4) {
+                        player.sendMessage("§cUsage: /eloot table add <group> <rarity> [percentage]");
+                        player.sendMessage("§7Rarities: " + getRarityNames());
+                        return true;
+                    }
+                    // Shift arguments to handle as regular table command
+                    String[] newArgs = new String[args.length - 1];
+                    newArgs[0] = args[0]; // "table"
+                    System.arraycopy(args, 2, newArgs, 1, args.length - 2);
+                    return handleTableAddCommand(sender, newArgs);
+                default:
+                    // Handle regular table add command (without "add" keyword)
+                    return handleTableAddCommand(sender, args);
+            }
+        }
+
+        return true;
+    }
+
+    private boolean handleTableAddCommand(CommandSender sender, String[] args) {
+        Player player = (Player) sender;
+
         if (args.length < 3) {
             player.sendMessage("§cUsage: /eloot table <group> <rarity> [percentage]");
             player.sendMessage("§7Rarities: " + getRarityNames());
@@ -220,6 +259,8 @@ public class ElootCommand implements CommandExecutor, Listener {
             player.sendMessage("§aSuccessfully added item to §e" + rarity.getFormattedName() + "§a rarity for group: §e" + groupName);
             if (percentage > 0) {
                 player.sendMessage("§7Spawn percentage: §e" + percentage + "%");
+            } else {
+                player.sendMessage("§7Using default percentage: §e" + rarity.getDefaultPercentage() + "%");
             }
         } else {
             player.sendMessage("§cFailed to add item to loot table! It might already exist.");
@@ -227,6 +268,81 @@ public class ElootCommand implements CommandExecutor, Listener {
 
         return true;
     }
+
+    private boolean handleTableListCommand(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cUsage: /eloot table list <group>");
+            return true;
+        }
+
+        String groupName = args[2];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            sender.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Get loot table summary
+        Map<Rarity, Integer> itemCounts = bossManager.getLootTableSummary(groupName);
+
+        sender.sendMessage("§6=== Loot Table Summary: §e" + groupName + " §6===");
+        for (Rarity rarity : Rarity.values()) {
+            int count = itemCounts.getOrDefault(rarity, 0);
+            sender.sendMessage("§7- " + rarity.getFormattedName() + "§7: §e" + count + " items");
+        }
+
+        int totalItems = itemCounts.values().stream().mapToInt(Integer::intValue).sum();
+        sender.sendMessage("§7Total items: §e" + totalItems);
+
+        return true;
+    }
+
+    private boolean handleTableRemoveCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be used by players!");
+            return true;
+        }
+
+        Player player = (Player) sender;
+
+        if (!player.hasPermission("eloot.admin") && !player.isOp()) {
+            player.sendMessage("§cYou don't have permission to modify loot tables!");
+            return true;
+        }
+
+        if (args.length < 3) {
+            player.sendMessage("§cUsage: /eloot table remove <group>");
+            return true;
+        }
+
+        String groupName = args[2];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            player.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            player.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Check if player is holding an item
+        ItemStack heldItem = player.getInventory().getItemInMainHand();
+        if (heldItem == null || heldItem.getType() == Material.AIR) {
+            player.sendMessage("§cYou must be holding an item to remove from the loot table!");
+            return true;
+        }
+
+        // Remove item from loot table
+        if (bossManager.removeItemFromLootTable(groupName, heldItem)) {
+            player.sendMessage("§aSuccessfully removed item from loot table for group: §e" + groupName);
+        } else {
+            player.sendMessage("§cItem not found in loot table for group: §e" + groupName);
+        }
+
+        return true;
+    }
+
 
     private void showNearbyLocations(Player player, int radius, WandMode mode) {
         String selectedGroup = selectedBossGroups.get(player);
