@@ -42,15 +42,18 @@ public class ElootTabCompleter implements TabCompleter {
                 case "despawn":
                 case "info":
                 case "edit":
+                    // Get boss names ONLY from registry file
                     List<String> bossNames = bossRegistry.getAllBossNames();
                     return StringUtil.copyPartialMatches(args[1], bossNames, completions);
+
                 case "table":
+                    // First argument after "table"
                     List<String> actions = new ArrayList<>();
-                    for (ChestAction action : ChestAction.values()) {
-                        actions.add(action.getCommand());
-                    }
+                    actions.add("add");
                     actions.add("remove");
                     actions.add("list");
+                    // Also allow direct group names for the old syntax: /eloot table <group> <rarity>
+                    actions.addAll(bossRegistry.getAllBossNames());
                     return StringUtil.copyPartialMatches(args[1], actions, completions);
 
                 case "new":
@@ -67,21 +70,34 @@ public class ElootTabCompleter implements TabCompleter {
             switch (args[0].toLowerCase()) {
                 case "wand":
                     if (args[1].equalsIgnoreCase("select")) {
+                        // Boss names for wand selection
                         List<String> bossNames = bossRegistry.getAllBossNames();
                         return StringUtil.copyPartialMatches(args[2], bossNames, completions);
                     }
                     break;
 
                 case "table":
-                    if (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove")) {
-                        // Rarity types for loot table operations
+                    // Second argument - depends on first argument
+                    String firstArg = args[1].toLowerCase();
+
+                    if (firstArg.equals("remove") || firstArg.equals("list")) {
+                        // For remove/list: suggest boss names
+                        List<String> bossNames = bossRegistry.getAllBossNames();
+                        return StringUtil.copyPartialMatches(args[2], bossNames, completions);
+                    }
+                    else if (firstArg.equals("add")) {
+                        // For add: suggest boss names
+                        List<String> bossNames = bossRegistry.getAllBossNames();
+                        return StringUtil.copyPartialMatches(args[2], bossNames, completions);
+                    }
+                    else {
+                        // For direct group name (old syntax): suggest rarities
                         List<String> rarities = new ArrayList<>();
                         for (Rarity rarity : Rarity.values()) {
                             rarities.add(rarity.name().toLowerCase());
                         }
                         return StringUtil.copyPartialMatches(args[2], rarities, completions);
                     }
-                    break;
 
                 case "new":
                     // Suggest world names for new boss creation
@@ -92,19 +108,47 @@ public class ElootTabCompleter implements TabCompleter {
         }
 
         if (args.length == 4) {
-            if (args[0].equalsIgnoreCase("table") && args[1].equalsIgnoreCase("add")) {
-                // Percentage suggestions for loot table add
-                return StringUtil.copyPartialMatches(args[3], Arrays.asList(
-                        "0.1", "0.5", "1.0", "5.0", "10.0", "15.0", "20.0", "25.0", "50.0", "75.0", "100.0"
-                ), completions);
-            }
+            switch (args[0].toLowerCase()) {
+                case "table":
+                    // Third argument - depends on previous arguments
+                    String firstArg = args[1].toLowerCase();
 
-            if (args[0].equalsIgnoreCase("edit")) {
-                // Config value suggestions for edit command
-                return StringUtil.copyPartialMatches(args[3], Arrays.asList(
-                        "chest-spawn-count", "respawn-timer-minutes",
-                        "hologram-text", "particles-enabled", "world-name"
-                ), completions);
+                    if (firstArg.equals("add")) {
+                        // For add: suggest rarities after boss name
+                        List<String> rarities = new ArrayList<>();
+                        for (Rarity rarity : Rarity.values()) {
+                            rarities.add(rarity.name().toLowerCase());
+                        }
+                        return StringUtil.copyPartialMatches(args[3], rarities, completions);
+                    }
+                    else if (!firstArg.equals("remove") && !firstArg.equals("list")) {
+                        // For direct group + rarity (old syntax): suggest percentages
+                        return StringUtil.copyPartialMatches(args[3], Arrays.asList(
+                                "0.1", "0.5", "1.0", "5.0", "10.0", "15.0", "20.0", "25.0", "50.0", "75.0", "100.0"
+                        ), completions);
+                    }
+                    break;
+
+                case "edit":
+                    // Config value suggestions for edit command
+                    return StringUtil.copyPartialMatches(args[3], Arrays.asList(
+                            "chest-spawn-count", "respawn-timer-minutes",
+                            "hologram-text", "particles-enabled", "world-name"
+                    ), completions);
+            }
+        }
+
+        if (args.length == 5) {
+            if (args[0].equalsIgnoreCase("table")) {
+                // Fourth argument - only for add command with percentage
+                String firstArg = args[1].toLowerCase();
+
+                if (firstArg.equals("add")) {
+                    // For add: suggest percentages after rarity
+                    return StringUtil.copyPartialMatches(args[4], Arrays.asList(
+                            "0.1", "0.5", "1.0", "5.0", "10.0", "15.0", "20.0", "25.0", "50.0", "75.0", "100.0"
+                    ), completions);
+                }
             }
         }
 

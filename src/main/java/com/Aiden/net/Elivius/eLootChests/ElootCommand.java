@@ -55,6 +55,7 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "table":
                 return handleTableCommand(sender, args);
 
+
             default:
                 sender.sendMessage("§cUnknown sub-command. Use: /eloot wand|new|table");
                 return true;
@@ -221,7 +222,7 @@ public class ElootCommand implements CommandExecutor, Listener {
         if (args.length >= 4) {
             try {
                 percentage = Double.parseDouble(args[3]);
-                if (percentage < 0.1 || percentage > 100) {
+                if (percentage < 0.1 || percentage > 100){
                     player.sendMessage("§cPercentage must be between 0.1 and 100!");
                     return true;
                 }
