@@ -55,11 +55,87 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "table":
                 return handleTableCommand(sender, args);
 
+            case "testitem":
+                return handleTestLootCommand(sender, args);
+
+
 
             default:
                 sender.sendMessage("§cUnknown sub-command. Use: /eloot wand|new|table");
                 return true;
         }
+    }
+    private boolean handleTestLootCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be used by players!");
+            return true;
+        }
+
+        Player player = (Player) sender;
+
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /eloot testloot <group> [rarity] [index]");
+            player.sendMessage("§7- /eloot testloot <group> - Show available items");
+            player.sendMessage("§7- /eloot testloot <group> <rarity> <index> - Get specific item");
+            return true;
+        }
+
+        String groupName = args[1];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            player.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            return true;
+        }
+
+        // If only group is specified, show info
+        if (args.length == 2) {
+            bossManager.sendLootTableInfo(player, groupName);
+            return true;
+        }
+
+        // If rarity is specified but no index, show rarity info
+        if (args.length == 3) {
+            String rarityName = args[2].toUpperCase();
+            // You could add more detailed rarity info here
+            player.sendMessage("§7Use /eloot testloot " + groupName + " " + rarityName.toLowerCase() + " <index>");
+            player.sendMessage("§7to get a specific item from this rarity");
+            return true;
+        }
+
+        // Get specific item
+        if (args.length >= 4) {
+            String rarityName = args[2].toUpperCase();
+            int index;
+
+            try {
+                index = Integer.parseInt(args[3]);
+            } catch (NumberFormatException e) {
+                player.sendMessage("§cIndex must be a number!");
+                return true;
+            }
+
+            // Validate rarity
+            Rarity rarity;
+            try {
+                rarity = Rarity.valueOf(rarityName);
+            } catch (IllegalArgumentException e) {
+                player.sendMessage("§cInvalid rarity! Available: " + getRarityNames());
+                return true;
+            }
+
+            // Get the specific item
+            ItemStack item = bossManager.getItemFromLootTable(groupName, rarity, index);
+
+            if (item != null) {
+                player.getInventory().addItem(item);
+                player.sendMessage("§aGiven item #§e" + index + "§a from §e" + rarity.getFormattedName() + "§a group: §e" + groupName);
+            } else {
+                player.sendMessage("§cNo item found at index §e" + index + "§c in §e" + rarity.getFormattedName() + "§c group!");
+            }
+        }
+
+        return true;
     }
 
     private boolean handleWandCommand(Player player, String[] args) {

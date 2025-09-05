@@ -289,7 +289,67 @@ public class BossManager {
 
         return itemCounts;
     }
+    public ItemStack getItemFromLootTable(String bossName, Rarity rarity, int index) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
 
+        if (!lootFile.exists()) {
+            return null;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+        String rarityKey = rarity.name().toLowerCase();
+
+        if (loot.contains(rarityKey + ".items")) {
+            List<Map<String, Object>> items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+            if (items != null && index >= 0 && index < items.size()) {
+                Map<String, Object> itemData = items.get(index);
+                String base64Item = (String) itemData.get("item");
+                return itemStackFromBase64(base64Item);
+            }
+        }
+
+        return null;
+    }
+
+    public void sendLootTableInfo(Player player, String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            player.sendMessage("§cLoot table not found for group: §e" + bossName);
+            return;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+
+        player.sendMessage("§6=== Loot Table: §e" + bossName + " §6===");
+
+        for (Rarity rarity : Rarity.values()) {
+            String rarityKey = rarity.name().toLowerCase();
+            int count = 0;
+
+            if (loot.contains(rarityKey + ".items")) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+                count = items != null ? items.size() : 0;
+            }
+
+            player.sendMessage("§7- " + rarity.getFormattedName() + "§7: §e" + count + " items");
+
+            // Show individual items with indexes
+            if (count > 0) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+                for (int i = 0; i < Math.min(count, 5); i++) { // Show first 5 items max
+                    Map<String, Object> itemData = items.get(i);
+                    double percentage = (Double) itemData.getOrDefault("percentage", 0.0);
+                    player.sendMessage("§8  [" + i + "] §7" + percentage + "%");
+                }
+                if (count > 5) {
+                    player.sendMessage("§8  ... and " + (count - 5) + " more");
+                }
+            }
+        }
+    }
     private String itemStackToBase64(ItemStack item) {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
