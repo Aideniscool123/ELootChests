@@ -34,6 +34,14 @@ public class ElootCommand implements CommandExecutor, Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
+    private boolean checkPermission(CommandSender sender, String permission) {
+        if (sender.hasPermission(permission) || sender.isOp()) {
+            return true;
+        }
+        sender.sendMessage("§cYou don't have permission to use this!");
+        return false;
+    }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
@@ -55,6 +63,9 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "table":
                 return handleTableCommand(sender, args);
 
+            case "despawn":
+                return handleDespawnCommand(sender, args);
+
             case "testitem":
                 return handleTestLootCommand(sender, args);
 
@@ -66,6 +77,8 @@ public class ElootCommand implements CommandExecutor, Listener {
         }
     }
     private boolean handleTestLootCommand(CommandSender sender, String[] args) {
+        if (!checkPermission(sender, "eloot.test.use")) return true;
+
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cThis command can only be used by players!");
             return true;
@@ -138,7 +151,39 @@ public class ElootCommand implements CommandExecutor, Listener {
         return true;
     }
 
+    private boolean handleDespawnCommand(CommandSender sender, String[] args) {
+        // Permission check
+        if (!checkPermission(sender, "eloot.despawn.use")) return true;
+
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /eloot despawn <group>");
+            return true;
+        }
+
+        String groupName = args[1];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            sender.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Actually despawn chests!
+        int despawnedCount = bossManager.despawnChests(groupName);
+
+        if (despawnedCount > 0) {
+            sender.sendMessage("§aDespawned §e" + despawnedCount + "§a chests from group: §e" + groupName);
+        } else {
+            sender.sendMessage("§cNo active chests found to despawn for group: §e" + groupName);
+        }
+
+        return true;
+    }
+
     private boolean handleWandCommand(Player player, String[] args) {
+        if (!checkPermission(player, "eloot.wand.use")) return true;
+
         // Stop all particles when switching modes
         bossManager.stopPlayerParticles(player);
 
@@ -197,6 +242,8 @@ public class ElootCommand implements CommandExecutor, Listener {
     }
 
     private boolean handleNewCommand(CommandSender sender, String[] args) {
+        if (!checkPermission(sender, "eloot.new.use")) return true;
+
         if (!sender.hasPermission("eloot.admin") && !sender.isOp()) {
             sender.sendMessage("§cYou don't have permission to create new boss groups!");
             return true;
@@ -233,6 +280,8 @@ public class ElootCommand implements CommandExecutor, Listener {
     }
 
     private boolean handleTableCommand(CommandSender sender, String[] args) {
+        if (!checkPermission(sender, "eloot.table.use")) return true;
+
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cThis command can only be used by players!");
             return true;

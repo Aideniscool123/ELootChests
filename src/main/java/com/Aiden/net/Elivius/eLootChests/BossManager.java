@@ -1,6 +1,7 @@
 package com.Aiden.net.Elivius.eLootChests;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -21,6 +22,7 @@ import java.util.*;
 public class BossManager {
     private final JavaPlugin plugin;
     private final Map<UUID, Map<Location, BukkitRunnable>> playerParticles = new HashMap<>();
+    private final Map<String, Set<Location>> activeChests = new HashMap<>();
 
     public BossManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -38,14 +40,25 @@ public class BossManager {
             return false;
         }
 
-        // Create config.yml
         File configFile = new File(bossFolder, "config.yml");
         YamlConfiguration config = new YamlConfiguration();
+
+        // Basic settings
         config.set("chest-spawn-count", 10);
         config.set("respawn-timer-minutes", 60);
         config.set("hologram-text", bossName + " Chest");
         config.set("particles-enabled", true);
         config.set("world-name", "world");
+
+        // NEW: Spawning rules
+        config.set("min-items-per-chest", 12);
+        config.set("max-items-per-chest", 17);
+        config.set("prevent-duplicates", true);
+        config.set("max-mythic-per-chest", 1);
+
+        // NEW: Announcement settings
+        config.set("announce-rarities", Arrays.asList("MYTHIC", "GODLIKE"));
+        config.set("announce-message", "[Elivius] A %RARITY% loot chest has spawned at %X% %Y% %Z% in %GROUP%.");
 
         // Create coordinates.yml
         File coordsFile = new File(bossFolder, "coordinates.yml");
@@ -74,6 +87,142 @@ public class BossManager {
             }
             return false;
         }
+    }
+
+    public int getMinItemsPerChest(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (!configFile.exists()) {
+            return 12; // Default
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+        return config.getInt("min-items-per-chest", 12);
+    }
+
+    public int getMaxItemsPerChest(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (!configFile.exists()) {
+            return 17; // Default
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+        return config.getInt("max-items-per-chest", 17);
+    }
+
+    public List<String> getAnnounceRarities(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (!configFile.exists()) {
+            return Arrays.asList("MYTHIC", "GODLIKE"); // Default
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+        return config.getStringList("announce-rarities");
+    }
+
+    public int despawnChests(String bossName) {
+        int despawnedCount = 0;
+
+        // Get active chests for this group
+        Set<Location> chestLocations = activeChests.getOrDefault(bossName.toLowerCase(), new HashSet<>());
+
+        for (Location location : chestLocations) {
+            if (removeChestAtLocation(location)) {
+                despawnedCount++;
+            }
+        }
+
+        // Clear the active chests for this group
+        activeChests.remove(bossName.toLowerCase());
+
+        plugin.getLogger().info("Despawned " + despawnedCount + " chests for group: " + bossName);
+        return despawnedCount;
+    }
+
+    private boolean removeChestAtLocation(Location location) {
+        if (location.getWorld() == null) return false;
+
+        // Remove the chest block
+        if (location.getBlock().getType() == Material.CHEST ||
+                location.getBlock().getType() == Material.TRAPPED_CHEST) {
+            location.getBlock().setType(Material.AIR);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Method to track spawned chests (will be used by spawn command later)
+    public void addActiveChest(String bossName, Location location) {
+        String key = bossName.toLowerCase();
+        activeChests.computeIfAbsent(key, k -> new HashSet<>()).add(location);
+    }
+
+    public void saveActiveChests() {
+        File activeFile = new File(plugin.getDataFolder(), "activechests.yml");
+        YamlConfiguration config = new YamlConfiguration();
+
+        for (Map.Entry<String, Set<Location>> entry : activeChests.entrySet()) {
+            List<String> locationStrings = new ArrayList<>();
+            for (Location loc : entry.getValue()) {
+                locationStrings.add(locToString(loc));
+            }
+            config.set(entry.getKey(), locationStrings);
+        }
+
+        try {
+            config.save(activeFile);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to save active chests: " + e.getMessage());
+        }
+    }
+
+    // Load active chests on plugin enable
+    public void loadActiveChests() {
+        File activeFile = new File(plugin.getDataFolder(), "activechests.yml");
+        if (!activeFile.exists()) return;
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(activeFile);
+        for (String bossName : config.getKeys(false)) {
+            List<String> locationStrings = config.getStringList(bossName);
+            Set<Location> locations = new HashSet<>();
+
+            for (String locString : locationStrings) {
+                Location loc = stringToLocation(locString);
+                if (loc != null) {
+                    locations.add(loc);
+                }
+            }
+
+            activeChests.put(bossName, locations);
+        }
+    }
+
+    // Helper methods for location serialization
+    private String locToString(Location location) {
+        return location.getWorld().getName() + "," +
+                location.getX() + "," +
+                location.getY() + "," +
+                location.getZ();
+    }
+
+    private Location stringToLocation(String locationString) {
+        String[] parts = locationString.split(",");
+        if (parts.length == 4) {
+            World world = plugin.getServer().getWorld(parts[0]);
+            if (world != null) {
+                return new Location(world,
+                        Double.parseDouble(parts[1]),
+                        Double.parseDouble(parts[2]),
+                        Double.parseDouble(parts[3]));
+            }
+        }
+        return null;
     }
 
     private void deleteFolder(File folder) {

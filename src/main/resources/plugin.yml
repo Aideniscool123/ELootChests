@@ -16,9 +16,12 @@ commands:
 
 # ========== PERMISSIONS ==========
 permissions:
+  # Base use permission
   eloot.use:
     description: Allows using eloot commands
     default: op
+
+  # Command-specific permissions
   eloot.wand.use:
     description: Allows using the wand tool
     default: op
@@ -28,6 +31,23 @@ permissions:
   eloot.despawn.use:
     description: Allows despawning loot chests
     default: op
+  eloot.table.use:
+    description: Allows modifying loot tables
+    default: op
+  eloot.new.use:
+    description: Allows creating new boss groups
+    default: op
+  eloot.info.use:
+    description: Allows viewing group information
+    default: op
+  eloot.edit.use:
+    description: Allows editing group configurations
+    default: op
+  eloot.test.use:
+    description: Allows testing commands
+    default: op
+
+  # Admin permission (includes all)
   eloot.admin:
     description: All admin permissions
     default: op
@@ -36,3 +56,8 @@ permissions:
       eloot.wand.use: true
       eloot.spawn.use: true
       eloot.despawn.use: true
+      eloot.table.use: true
+      eloot.new.use: true
+      eloot.info.use: true
+      eloot.edit.use: true
+      eloot.test.use: true

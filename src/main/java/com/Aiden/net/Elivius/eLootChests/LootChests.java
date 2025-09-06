@@ -18,6 +18,7 @@ public final class LootChests extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
 
         this.bossManager = new BossManager(this);
+        this.bossManager.loadActiveChests();
         this.bossRegistry = new BossRegistry(this);
 
         getCommand("eloot").setExecutor(new ElootCommand(this, bossManager, bossRegistry));
@@ -28,6 +29,8 @@ public final class LootChests extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        bossManager.saveActiveChests();
+
         getLogger().info("LootChests has been disabled!");
     }
 
