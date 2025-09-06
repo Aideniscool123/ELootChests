@@ -61,6 +61,10 @@ public class ElootCommand implements CommandExecutor, Listener {
                 return handleNewCommand(sender, args);
 
             case "table":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("§cThis command can only be used by players!");
+                    return true;
+                }
                 return handleTableCommand(sender, args);
 
             case "spawn":
@@ -72,12 +76,16 @@ public class ElootCommand implements CommandExecutor, Listener {
 
 
             case "testitem":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("§cThis command can only be used by players!");
+                    return true;
+                }
                 return handleTestLootCommand(sender, args);
 
 
 
             default:
-                sender.sendMessage("§cUnknown sub-command. Use: /eloot wand|new|table");
+                sender.sendMessage("§cUnknown sub-command. Use: /eloot wand || new || table || spawn || despawn ");
                 return true;
         }
     }

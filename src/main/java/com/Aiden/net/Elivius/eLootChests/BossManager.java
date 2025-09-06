@@ -3,8 +3,11 @@ package com.Aiden.net.Elivius.eLootChests;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -100,6 +103,174 @@ public class BossManager {
         }
     }
 
+    public Map<String, Integer> getLootConstraints() {
+        Map<String, Integer> constraints = new HashMap<>();
+        for (LootConstraint constraint : LootConstraint.values()) {
+            constraints.put(constraint.name(), constraint.getMaxAmount());
+        }
+        return constraints;
+    }
+
+    private boolean canAddItemToChest(Map<Rarity, Integer> currentCounts, Rarity newRarity) {
+        // Check individual rarity limits
+        for (LootConstraint constraint : LootConstraint.values()) {
+            if (constraint.affectsRarity(newRarity)) {
+                switch (constraint) {
+                    case MAX_COMMON_PER_CHEST:
+                    case MAX_RARE_PER_CHEST:
+                    case MAX_EPIC_PER_CHEST:
+                    case MAX_LEGENDARY_PER_CHEST:
+                    case MAX_MYTHIC_PER_CHEST:
+                    case MAX_GODLIKE_PER_CHEST:
+                        int currentCount = currentCounts.getOrDefault(newRarity, 0);
+                        if (currentCount >= constraint.getMaxAmount()) {
+                            return false;
+                        }
+                        break;
+
+                    case MYTHIC_OR_GODLIKE_ONLY:
+                        // Check if we already have a mythic or godlike item
+                        if ((newRarity == Rarity.MYTHIC || newRarity == Rarity.GODLIKE) &&
+                                (currentCounts.getOrDefault(Rarity.MYTHIC, 0) > 0 ||
+                                        currentCounts.getOrDefault(Rarity.GODLIKE, 0) > 0)) {
+                            return false;
+                        }
+                        break;
+
+                    case NO_GODLIKE_WITH_LEGENDARY:
+                        // Godlike and Legendary can't coexist
+                        if (newRarity == Rarity.GODLIKE && currentCounts.getOrDefault(Rarity.LEGENDARY, 0) > 0) {
+                            return false;
+                        }
+                        if (newRarity == Rarity.LEGENDARY && currentCounts.getOrDefault(Rarity.GODLIKE, 0) > 0) {
+                            return false;
+                        }
+                        break;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private void fillChestWithLoot(String bossName, Location chestLocation) {
+        if (chestLocation.getWorld() == null) return;
+
+        Block chestBlock = chestLocation.getBlock();
+
+        Chest chest = (Chest) chestBlock.getState();
+        Inventory chestInventory = chest.getInventory();
+        chestInventory.clear();
+
+        // Get group config
+        YamlConfiguration config = getGroupConfig(bossName);
+        int minItems = config.getInt("min-items-per-chest", 12);
+        int maxItems = config.getInt("max-items-per-chest", 17);
+
+        // Determine how many items to add
+        int itemsToAdd = minItems + new Random().nextInt(maxItems - minItems + 1);
+        int itemsAdded = 0;
+
+        Map<Rarity, Integer> currentCounts = new HashMap<>();
+        int attempts = 0;
+        int maxAttempts = itemsToAdd * 3;
+
+        while (itemsAdded < itemsToAdd && attempts < maxAttempts) {
+            attempts++;
+
+            Rarity selectedRarity = selectRarityBasedOnPercentage(bossName);
+            ItemStack item = selectRandomItemFromRarity(bossName, selectedRarity);
+
+            if (item != null && canAddItemToChest(currentCounts, selectedRarity)) {
+                addItemToRandomSlot(chestInventory, item);
+                currentCounts.put(selectedRarity, currentCounts.getOrDefault(selectedRarity, 0) + 1);
+                itemsAdded++;
+            }
+        }
+
+        Chest updatedChest = (Chest) chestBlock.getState();
+        updatedChest.update(true, true);
+    }
+
+    private Rarity selectRarityBasedOnPercentage(String bossName) {
+        // Get the loot table for this boss
+        Map<Rarity, Double> rarityChances = new HashMap<>();
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (lootFile.exists()) {
+            YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+            for (Rarity rarity : Rarity.values()) {
+                String rarityKey = rarity.name().toLowerCase();
+                double percentage = loot.getDouble(rarityKey + ".spawn-percentage", rarity.getDefaultPercentage());
+                rarityChances.put(rarity, percentage);
+            }
+        } else {
+            // Use default percentages if no loot table exists
+            for (Rarity rarity : Rarity.values()) {
+                rarityChances.put(rarity, rarity.getDefaultPercentage());
+            }
+        }
+
+        // Calculate total percentage
+        double total = rarityChances.values().stream().mapToDouble(Double::doubleValue).sum();
+        double random = Math.random() * total;
+
+        // Select rarity based on weighted random - FIXED LOGIC
+        double current = 0;
+        for (Rarity rarity : Rarity.values()) {
+            double chance = rarityChances.getOrDefault(rarity, 0.0);
+            current += chance;
+            if (random <= current) {
+                return rarity;
+            }
+        }
+
+        return Rarity.COMMON; // Fallback
+    }
+
+    private ItemStack selectRandomItemFromRarity(String bossName, Rarity rarity) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!lootFile.exists()) {
+            return null;
+        }
+
+        YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+        String rarityKey = rarity.name().toLowerCase();
+
+        if (loot.contains(rarityKey + ".items")) {
+            List<Map<String, Object>> items = (List<Map<String, Object>>) loot.getList(rarityKey + ".items");
+            if (items != null && !items.isEmpty()) {
+                // Select random item from this rarity
+                Map<String, Object> itemData = items.get(new Random().nextInt(items.size()));
+                String base64Item = (String) itemData.get("item");
+                return itemStackFromBase64(base64Item);
+            }
+        }
+
+        return null;
+    }
+
+    private void addItemToRandomSlot(Inventory inventory, ItemStack item) {
+        if (item == null) return;
+
+        // Find all empty slots
+        List<Integer> emptySlots = new ArrayList<>();
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (inventory.getItem(i) == null) {
+                emptySlots.add(i);
+            }
+        }
+
+        if (emptySlots.isEmpty()) return;
+
+        // Select random slot and add the item
+        int randomSlot = emptySlots.get(new Random().nextInt(emptySlots.size()));
+        inventory.setItem(randomSlot, item);
+    }
+
     public int getMinItemsPerChest(String bossName) {
         File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
         File configFile = new File(bossFolder, "config.yml");
@@ -182,7 +353,10 @@ public class BossManager {
         // Spawn the chest
         location.getBlock().setType(Material.CHEST);
 
-        // Track this active chest - Use block coordinates for consistency
+        // Fill chest with loot
+        fillChestWithLoot(bossName, location);
+
+        // Track this active chest
         Location blockLocation = new Location(
                 location.getWorld(),
                 location.getBlockX(),
