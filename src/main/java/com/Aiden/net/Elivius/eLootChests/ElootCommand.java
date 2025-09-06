@@ -70,6 +70,7 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "despawn":
                 return handleDespawnCommand(sender, args);
 
+
             case "testitem":
                 return handleTestLootCommand(sender, args);
 

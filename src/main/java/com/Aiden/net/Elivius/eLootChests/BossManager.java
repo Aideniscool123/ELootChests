@@ -28,6 +28,17 @@ public class BossManager {
         this.plugin = plugin;
     }
 
+    public Map<String, Set<Location>> getActiveChests() {
+        return activeChests;
+    }
+
+    private String locationToString(Location location) {
+        return location.getWorld().getName() + " " +
+                location.getBlockX() + " " +
+                location.getBlockY() + " " +
+                location.getBlockZ();
+    }
+
     public boolean createBossGroup(String bossName) {
         File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
         if (bossFolder.exists()) {
@@ -160,20 +171,26 @@ public class BossManager {
 
     private boolean spawnChestAtLocation(String bossName, Location location) {
         if (location.getWorld() == null) {
-            plugin.getLogger().warning("World not found for location: " + location);
             return false;
         }
 
         // Check if block is already a chest or occupied
         if (location.getBlock().getType() != Material.AIR) {
-            plugin.getLogger().warning("Location already occupied: " + location);
             return false;
         }
 
         // Spawn the chest
         location.getBlock().setType(Material.CHEST);
 
+        // Track this active chest - Use block coordinates for consistency
+        Location blockLocation = new Location(
+                location.getWorld(),
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
 
+        addActiveChest(bossName, blockLocation);
         return true;
     }
 
@@ -195,6 +212,7 @@ public class BossManager {
         return YamlConfiguration.loadConfiguration(configFile);
     }
 
+
     public int despawnChests(String bossName) {
         int despawnedCount = 0;
         String key = bossName.toLowerCase();
@@ -205,7 +223,6 @@ public class BossManager {
         for (Location location : chestLocations) {
             if (removeChestAtLocation(location)) {
                 despawnedCount++;
-
             }
         }
 
@@ -221,20 +238,37 @@ public class BossManager {
     private boolean removeChestAtLocation(Location location) {
         if (location.getWorld() == null) return false;
 
+        // Use block coordinates for consistency
+        Location blockLocation = new Location(
+                location.getWorld(),
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+
         // Remove the chest block
-        if (location.getBlock().getType() == Material.CHEST ||
-                location.getBlock().getType() == Material.TRAPPED_CHEST) {
-            location.getBlock().setType(Material.AIR);
+        if (blockLocation.getBlock().getType() == Material.CHEST ||
+                blockLocation.getBlock().getType() == Material.TRAPPED_CHEST) {
+            blockLocation.getBlock().setType(Material.AIR);
             return true;
         }
 
         return false;
     }
 
-    // Method to track spawned chests (will be used by spawn command later)
+    // Method to track spawned chests
     public void addActiveChest(String bossName, Location location) {
         String key = bossName.toLowerCase();
-        activeChests.computeIfAbsent(key, k -> new HashSet<>()).add(location);
+
+        // Use block coordinates for consistency
+        Location blockLocation = new Location(
+                location.getWorld(),
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+
+        activeChests.computeIfAbsent(key, k -> new HashSet<>()).add(blockLocation);
     }
 
     public void saveActiveChests() {
