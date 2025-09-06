@@ -125,24 +125,98 @@ public class BossManager {
         return config.getStringList("announce-rarities");
     }
 
+    public int spawnChests(String bossName) {
+        // Get group configuration
+        YamlConfiguration config = getGroupConfig(bossName);
+        int chestsToSpawn = config.getInt("chest-spawn-count", 10);
+
+        // Get all saved locations for this group
+        List<Location> allLocations = getSavedChestLocations(bossName);
+
+        if (allLocations.isEmpty()) {
+            plugin.getLogger().warning("No chest locations found for group: " + bossName);
+            return 0;
+        }
+
+        if (chestsToSpawn > allLocations.size()) {
+            plugin.getLogger().warning("Cannot spawn " + chestsToSpawn + " chests! Group '" + bossName + "' only has " + allLocations.size() + " locations.");
+            return 0;
+        }
+
+        // Randomly select locations
+        Collections.shuffle(allLocations);
+        List<Location> selectedLocations = allLocations.subList(0, Math.min(chestsToSpawn, allLocations.size()));
+
+        int spawnedCount = 0;
+        for (Location location : selectedLocations) {
+            if (spawnChestAtLocation(bossName, location)) {
+                spawnedCount++;
+            }
+        }
+
+        plugin.getLogger().info("Spawned " + spawnedCount + " chests for group: " + bossName);
+        return spawnedCount;
+    }
+
+    private boolean spawnChestAtLocation(String bossName, Location location) {
+        if (location.getWorld() == null) {
+            plugin.getLogger().warning("World not found for location: " + location);
+            return false;
+        }
+
+        // Check if block is already a chest or occupied
+        if (location.getBlock().getType() != Material.AIR) {
+            plugin.getLogger().warning("Location already occupied: " + location);
+            return false;
+        }
+
+        // Spawn the chest
+        location.getBlock().setType(Material.CHEST);
+
+
+        return true;
+    }
+
+    public YamlConfiguration getGroupConfig(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (!configFile.exists()) {
+            // Return default config if file doesn't exist
+            YamlConfiguration defaultConfig = new YamlConfiguration();
+            defaultConfig.set("chest-spawn-count", 10);
+            defaultConfig.set("respawn-timer-minutes", 60);
+            defaultConfig.set("hologram-text", bossName + " Chest");
+            defaultConfig.set("particles-enabled", true);
+            defaultConfig.set("world-name", "world");
+            return defaultConfig;
+        }
+
+        return YamlConfiguration.loadConfiguration(configFile);
+    }
+
     public int despawnChests(String bossName) {
         int despawnedCount = 0;
+        String key = bossName.toLowerCase();
 
         // Get active chests for this group
-        Set<Location> chestLocations = activeChests.getOrDefault(bossName.toLowerCase(), new HashSet<>());
+        Set<Location> chestLocations = activeChests.getOrDefault(key, new HashSet<>());
 
         for (Location location : chestLocations) {
             if (removeChestAtLocation(location)) {
                 despawnedCount++;
+
             }
         }
 
         // Clear the active chests for this group
-        activeChests.remove(bossName.toLowerCase());
+        activeChests.remove(key);
 
         plugin.getLogger().info("Despawned " + despawnedCount + " chests for group: " + bossName);
         return despawnedCount;
     }
+
+
 
     private boolean removeChestAtLocation(Location location) {
         if (location.getWorld() == null) return false;

@@ -63,6 +63,10 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "table":
                 return handleTableCommand(sender, args);
 
+            case "spawn":
+                return handleSpawnCommand(sender, args);
+
+
             case "despawn":
                 return handleDespawnCommand(sender, args);
 
@@ -76,6 +80,38 @@ public class ElootCommand implements CommandExecutor, Listener {
                 return true;
         }
     }
+
+    private boolean handleSpawnCommand(CommandSender sender, String[] args) {
+        // Permission check
+        if (!checkPermission(sender, "eloot.spawn.use")) return true;
+
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /eloot spawn <group>");
+            return true;
+        }
+
+        String groupName = args[1];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            sender.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Spawn chests!
+        int spawnedCount = bossManager.spawnChests(groupName);
+
+        if (spawnedCount > 0) {
+            sender.sendMessage("§aSpawned §e" + spawnedCount + "§a chests for group: §e" + groupName);
+        } else {
+            sender.sendMessage("§cFailed to spawn chests for group: §e" + groupName);
+            sender.sendMessage("§7Check if the group has saved chest locations.");
+        }
+
+        return true;
+    }
+
     private boolean handleTestLootCommand(CommandSender sender, String[] args) {
         if (!checkPermission(sender, "eloot.test.use")) return true;
 
