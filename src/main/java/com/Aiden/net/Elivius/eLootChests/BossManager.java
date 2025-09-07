@@ -11,7 +11,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.Particle;
 import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -26,8 +25,11 @@ public class BossManager {
     private final JavaPlugin plugin;
     private final Map<UUID, Map<Location, BukkitRunnable>> playerParticles = new HashMap<>();
     private final Map<String, Set<Location>> activeChests = new HashMap<>();
+    private final HologramManager hologramManager;
 
     public BossManager(JavaPlugin plugin) {
+
+        this.hologramManager = new HologramManager(plugin);
         this.plugin = plugin;
     }
 
@@ -64,13 +66,13 @@ public class BossManager {
         config.set("particles-enabled", true);
         config.set("world-name", "world");
 
-        // NEW: Spawning rules
+        // Spawning rules
         config.set("min-items-per-chest", 12);
         config.set("max-items-per-chest", 17);
         config.set("prevent-duplicates", true);
         config.set("max-mythic-per-chest", 1);
 
-        // NEW: Announcement settings
+        // Announcement settings
         config.set("announce-rarities", Arrays.asList("MYTHIC", "GODLIKE"));
         config.set("announce-message", "[Elivius] A %RARITY% loot chest has spawned at %X% %Y% %Z% in %GROUP%.");
 
@@ -171,6 +173,7 @@ public class BossManager {
         int itemsToAdd = minItems + new Random().nextInt(maxItems - minItems + 1);
         int itemsAdded = 0;
 
+        Rarity highestRarity = Rarity.COMMON;
         Map<Rarity, Integer> currentCounts = new HashMap<>();
         int attempts = 0;
         int maxAttempts = itemsToAdd * 3;
@@ -188,8 +191,14 @@ public class BossManager {
             }
         }
 
+
         Chest updatedChest = (Chest) chestBlock.getState();
         updatedChest.update(true, true);
+        hologramManager.createChestHologram(bossName, chestLocation, highestRarity);
+    }
+
+    public HologramManager getHologramManager() {
+        return hologramManager;
     }
 
     private Rarity selectRarityBasedOnPercentage(String bossName) {
@@ -397,6 +406,7 @@ public class BossManager {
         for (Location location : chestLocations) {
             if (removeChestAtLocation(location)) {
                 despawnedCount++;
+                hologramManager.removeChestHologram(location);
             }
         }
 

@@ -19,7 +19,6 @@
     <build>
         <defaultGoal>clean package</defaultGoal>
 
-        <!-- Resources section to include classes -->
         <resources>
             <resource>
                 <directory>src/main/resources</directory>

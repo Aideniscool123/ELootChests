@@ -74,6 +74,8 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "despawn":
                 return handleDespawnCommand(sender, args);
 
+            case "fixholograms":
+                return handleFixHologramsCommand(sender);
 
             case "testitem":
                 if (!(sender instanceof Player)) {
@@ -88,6 +90,15 @@ public class ElootCommand implements CommandExecutor, Listener {
                 sender.sendMessage("§cUnknown sub-command. Use: /eloot wand || new || table || spawn || despawn ");
                 return true;
         }
+    }
+
+    private boolean handleFixHologramsCommand(CommandSender sender) {
+        if (!checkPermission(sender, "eloot.admin")) return true;
+
+        // Remove ALL holograms
+        HologramManager.removeAllHolograms();
+        sender.sendMessage("§aRemoved all holograms");
+        return true;
     }
 
     private boolean handleSpawnCommand(CommandSender sender, String[] args) {

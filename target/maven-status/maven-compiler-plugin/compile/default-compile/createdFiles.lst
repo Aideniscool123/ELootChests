@@ -1,0 +1,16 @@
+com\Aiden\net\Elivius\eLootChests\Enums\BossType.class
+com\Aiden\net\Elivius\eLootChests\LootChests.class
+com\Aiden\net\Elivius\eLootChests\Enums\Rarity.class
+com\Aiden\net\Elivius\eLootChests\BossManager$1.class
+com\Aiden\net\Elivius\eLootChests\ElootTabCompleter.class
+com\Aiden\net\Elivius\eLootChests\ElootCommand.class
+com\Aiden\net\Elivius\eLootChests\LootChests$1.class
+com\Aiden\net\Elivius\eLootChests\BossManager$2.class
+com\Aiden\net\Elivius\eLootChests\Enums\ParticleType.class
+com\Aiden\net\Elivius\eLootChests\HologramManager.class
+com\Aiden\net\Elivius\eLootChests\BossRegistry.class
+com\Aiden\net\Elivius\eLootChests\Enums\WandMode.class
+com\Aiden\net\Elivius\eLootChests\BossManager.class
+com\Aiden\net\Elivius\eLootChests\ElootCommand$1.class
+com\Aiden\net\Elivius\eLootChests\Enums\LootConstraint.class
+com\Aiden\net\Elivius\eLootChests\Enums\ChestAction.class
