@@ -62,7 +62,7 @@ public class HologramManager {
         if (!decentHologramsEnabled) return;
 
         try {
-            Location hologramLocation = chestLocation.clone().add(0.5, 2.2, 0.5);
+            Location hologramLocation = chestLocation.clone().add(0.5, 2.5, 0.5);
             String hologramId = "lootchest_" + System.currentTimeMillis();
 
             // Create hologram using reflection
@@ -75,10 +75,10 @@ public class HologramManager {
 
             try {
                 Class<?> hologramClass = Class.forName("eu.decentsoftware.holograms.api.holograms.Hologram");
-                Method setInteractionEnabledMethod = hologramClass.getMethod("setInteractionEnabled", boolean.class);
-                setInteractionEnabledMethod.invoke(hologram, false); // Disable interaction
+                Method setClickableMethod = hologramClass.getMethod("setClickable", boolean.class);
+                setClickableMethod.invoke(hologram, false); // Make click-through
             } catch (Exception e) {
-                plugin.getLogger().warning("Could not disable hologram interaction: " + e.getMessage());
+                plugin.getLogger().warning("Could not make hologram click-through: " + e.getMessage());
             }
 
             activeHolograms.put(chestLocation, hologram);

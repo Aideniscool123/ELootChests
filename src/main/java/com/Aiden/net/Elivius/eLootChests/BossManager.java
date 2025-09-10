@@ -56,25 +56,14 @@ public class BossManager {
             return false;
         }
 
+        // Create config.yml USING ENUM
         File configFile = new File(bossFolder, "config.yml");
         YamlConfiguration config = new YamlConfiguration();
 
-        // Basic settings
-        config.set("chest-spawn-count", 10);
-        config.set("respawn-timer-minutes", 60);
-        config.set("hologram-text", bossName + " Chest");
-        config.set("particles-enabled", true);
-        config.set("world-name", "world");
-
-        // Spawning rules
-        config.set("min-items-per-chest", 12);
-        config.set("max-items-per-chest", 17);
-        config.set("prevent-duplicates", true);
-        config.set("max-mythic-per-chest", 1);
-
-        // Announcement settings
-        config.set("announce-rarities", Arrays.asList("MYTHIC", "GODLIKE"));
-        config.set("announce-message", "[Elivius] A %RARITY% loot chest has spawned at %X% %Y% %Z% in %GROUP%.");
+        // Set all config values using ConfigField enum
+        for (ConfigField field : ConfigField.values()) {
+            field.setValue(config, bossName);
+        }
 
         // Create coordinates.yml
         File coordsFile = new File(bossFolder, "coordinates.yml");
@@ -103,6 +92,42 @@ public class BossManager {
             }
             return false;
         }
+    }
+
+    public void announceChestSpawn(String bossName, Location chestLocation, Rarity rarity) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (!configFile.exists()) return;
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+
+        List<String> announceRarities = ConfigField.ANNOUNCE_RARITIES.getStringList(config);
+        String targetWorldName = ConfigField.ANNOUNCE_WORLD.getString(config);
+        String displayName = ConfigField.BOSS_DISPLAY_NAME.getString(config);
+
+        // Check if this rarity should be announced
+        if (!announceRarities.contains(rarity.name())) {
+            return; // This rarity shouldn't be announced
+        }
+
+        // Get the target world
+        World targetWorld = plugin.getServer().getWorld(targetWorldName);
+        if (targetWorld == null) {
+            plugin.getLogger().warning("Announcement world not found: " + targetWorldName);
+            return;
+        }
+
+        // Create announcement message
+        String message = "§6[Elivius] §eA §5" + rarity.getFormattedName() +
+                " §eloot chest has spawned in §b" + displayName + "§e!";
+
+        // Broadcast to all players in the target world
+        for (Player player : targetWorld.getPlayers()) {
+            player.sendMessage(message);
+        }
+
+        plugin.getLogger().info("Announced " + rarity + " chest to world: " + targetWorldName);
     }
 
     public Map<String, Integer> getLootConstraints() {
@@ -188,12 +213,18 @@ public class BossManager {
                 addItemToRandomSlot(chestInventory, item);
                 currentCounts.put(selectedRarity, currentCounts.getOrDefault(selectedRarity, 0) + 1);
                 itemsAdded++;
+
+                if (selectedRarity.ordinal() > highestRarity.ordinal()) {
+                    highestRarity = selectedRarity;
+                }
             }
         }
 
 
         Chest updatedChest = (Chest) chestBlock.getState();
         updatedChest.update(true, true);
+
+        announceChestSpawn(bossName, chestLocation, highestRarity);
         hologramManager.createChestHologram(bossName, chestLocation, highestRarity);
     }
 
