@@ -62,3 +62,4 @@ permissions:
       eloot.info.use: true
       eloot.edit.use: true
       eloot.test.use: true
+      eloot.reload.use: true

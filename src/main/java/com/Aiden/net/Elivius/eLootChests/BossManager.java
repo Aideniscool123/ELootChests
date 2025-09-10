@@ -94,6 +94,94 @@ public class BossManager {
         }
     }
 
+    public boolean editGroupConfig(String bossName, String key, String value) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (!configFile.exists()) {
+            plugin.getLogger().warning("Config file doesn't exist for group: " + bossName);
+            return false;
+        }
+
+        try {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+
+            // Handle different value types
+            switch (key) {
+                case "chest-spawn-count":
+                    config.set(key, Integer.parseInt(value));
+                    break;
+                case "announce-rarities":
+                    // Convert comma-separated string to list
+                    List<String> rarities = Arrays.asList(value.split(","));
+                    config.set(key, rarities);
+                    break;
+                default:
+                    config.set(key, value);
+            }
+
+            config.save(configFile);
+            plugin.getLogger().info("Updated " + key + " to " + value + " for group: " + bossName);
+            return true;
+
+        } catch (NumberFormatException e) {
+            plugin.getLogger().warning("Invalid number format for " + key + ": " + value);
+            return false;
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to save config for group: " + bossName);
+            return false;
+        }
+    }
+
+    public boolean reloadGroup(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+
+        // Check if group folder exists
+        if (!bossFolder.exists()) {
+            plugin.getLogger().warning("Cannot reload - group folder doesn't exist: " + bossName);
+            return false;
+        }
+
+        // Check if all required files exist
+        File configFile = new File(bossFolder, "config.yml");
+        File coordsFile = new File(bossFolder, "coordinates.yml");
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (!configFile.exists() || !coordsFile.exists() || !lootFile.exists()) {
+            plugin.getLogger().warning("Cannot reload - missing config files for group: " + bossName);
+            return false;
+        }
+
+        plugin.getLogger().info("Reloaded group configuration for: " + bossName);
+        return true;
+    }
+
+    public int getChestCount(String bossName) {
+        return getSavedChestLocations(bossName).size();
+    }
+
+    public Map<Rarity, Integer> getItemCountsByRarity(String bossName) {
+        Map<Rarity, Integer> counts = new HashMap<>();
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (lootFile.exists()) {
+            YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+            for (Rarity rarity : Rarity.values()) {
+                String rarityKey = rarity.name().toLowerCase();
+                if (loot.contains(rarityKey + ".items")) {
+                    List<?> items = loot.getList(rarityKey + ".items");
+                    counts.put(rarity, items != null ? items.size() : 0);
+                } else {
+                    counts.put(rarity, 0);
+                }
+            }
+        }
+
+        return counts;
+    }
+
+
     public void announceChestSpawn(String bossName, Location chestLocation, Rarity rarity) {
         File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
         File configFile = new File(bossFolder, "config.yml");

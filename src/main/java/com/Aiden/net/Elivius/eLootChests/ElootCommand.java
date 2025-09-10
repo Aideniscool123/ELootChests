@@ -5,6 +5,7 @@ import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -74,6 +75,15 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "despawn":
                 return handleDespawnCommand(sender, args);
 
+            case "reload":
+                return handleReloadCommand(sender, args);
+
+            case "info":
+                return handleInfoCommand(sender, args);
+
+            case "edit":
+                return handleEditCommand(sender, args);
+
             case "fixholograms":
                 return handleFixHologramsCommand(sender);
 
@@ -90,6 +100,133 @@ public class ElootCommand implements CommandExecutor, Listener {
                 sender.sendMessage("§cUnknown sub-command. Use: /eloot wand || new || table || spawn || despawn ");
                 return true;
         }
+    }
+
+    private boolean handleEditCommand(CommandSender sender, String[] args) {
+        if (!checkPermission(sender, "eloot.edit.use")) return true;
+
+        if (args.length < 4) {
+            sender.sendMessage("§cUsage: /eloot edit <group> <config> <value>");
+            sender.sendMessage("§7Available configs: chest-spawn-count, announce-world, boss-display-name, announce-rarities");
+            return true;
+        }
+
+        String groupName = args[1];
+        String configKey = args[2];
+        String value = args[3];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            sender.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            return true;
+        }
+
+        // Validate config key
+        if (!isValidConfigKey(configKey)) {
+            sender.sendMessage("§cInvalid config key: '" + configKey + "'");
+            sender.sendMessage("§7Available: chest-spawn-count, announce-world, boss-display-name, announce-rarities");
+            return true;
+        }
+
+        // Edit the config value
+        if (bossManager.editGroupConfig(groupName, configKey, value)) {
+            sender.sendMessage("§aUpdated §e" + configKey + "§a to §e" + value);
+        } else {
+            sender.sendMessage("§cFailed to update configuration!");
+        }
+
+        return true;
+    }
+
+    private boolean isValidConfigKey(String key) {
+        return key.equals("chest-spawn-count") ||
+                key.equals("announce-world") ||
+                key.equals("boss-display-name") ||
+                key.equals("announce-rarities");
+    }
+
+    private boolean handleInfoCommand(CommandSender sender, String[] args) {
+        if (!checkPermission(sender, "eloot.info.use")) return true;
+
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /eloot info <group>");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        String groupName = args[1];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            sender.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Show group information
+        showGroupInfo(sender, groupName);
+        return true;
+    }
+
+    private void showGroupInfo(CommandSender sender, String groupName) {
+        // Get group information from BossManager
+        int chestCount = bossManager.getChestCount(groupName);
+        Map<Rarity, Integer> itemCounts = bossManager.getItemCountsByRarity(groupName);
+        YamlConfiguration config = bossManager.getGroupConfig(groupName);
+
+        sender.sendMessage("§6=== Group Info: §e" + groupName + " §6===");
+        sender.sendMessage("§7Chest locations: §e" + chestCount);
+
+        // Show item counts by rarity
+        sender.sendMessage("§7Items by rarity:");
+        for (Rarity rarity : Rarity.values()) {
+            int count = itemCounts.getOrDefault(rarity, 0);
+            if (count > 0) {
+                sender.sendMessage("§8- " + rarity.getFormattedName() + "§7: §e" + count + " items");
+            }
+        }
+
+        // Show config settings
+        if (config != null) {
+            sender.sendMessage("§7Config settings:");
+            sender.sendMessage("§8- Chest spawn count: §e" + config.getInt("chest-spawn-count", 10));
+            sender.sendMessage("§8- Announce world: §e" + config.getString("announce-world", "world"));
+            sender.sendMessage("§8- Display name: §e" + config.getString("boss-display-name", groupName));
+
+            // Show which rarities are announced
+            List<String> announceRarities = config.getStringList("announce-rarities");
+            if (!announceRarities.isEmpty()) {
+                sender.sendMessage("§8- Announce rarities: §e" + String.join(", ", announceRarities));
+            }
+        }
+    }
+
+    private boolean handleReloadCommand(CommandSender sender, String[] args) {
+        if (!checkPermission(sender, "eloot.admin")) return true;
+
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /eloot reload <group>");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        String groupName = args[1];
+
+        // Validate group exists
+        if (!bossRegistry.bossExists(groupName)) {
+            sender.sendMessage("§cBoss group '" + groupName + "' does not exist!");
+            sender.sendMessage("§7Available groups: " + String.join(", ", bossRegistry.getAllBossNames()));
+            return true;
+        }
+
+        // Reload the group configuration
+        if (bossManager.reloadGroup(groupName)) {
+            sender.sendMessage("§aSuccessfully reloaded group: §e" + groupName);
+        } else {
+            sender.sendMessage("§cFailed to reload group: §e" + groupName);
+        }
+
+        return true;
     }
 
     private boolean handleFixHologramsCommand(CommandSender sender) {

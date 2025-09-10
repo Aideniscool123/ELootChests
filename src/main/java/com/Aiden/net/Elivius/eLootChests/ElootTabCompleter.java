@@ -12,6 +12,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * @author AidenTheStitch
+ * @file ElootTabCompleter.java
+ * @description Handles tab completion for /eloot commands
+ */
 public class ElootTabCompleter implements TabCompleter {
 
     private final BossRegistry bossRegistry;
@@ -26,9 +31,10 @@ public class ElootTabCompleter implements TabCompleter {
 
         if (args.length == 1) {
             // Main command completions
-            return StringUtil.copyPartialMatches(args[0], Arrays.asList(
-                    "wand", "spawn", "despawn", "table", "new", "info", "edit"
-            ), completions);
+            List<String> commands = new ArrayList<>(Arrays.asList(
+                    "wand", "spawn", "despawn", "table", "new", "info", "edit", "reload", "testitem"
+            ));
+            return StringUtil.copyPartialMatches(args[0], commands, completions);
         }
 
         if (args.length == 2) {
@@ -42,6 +48,7 @@ public class ElootTabCompleter implements TabCompleter {
                 case "despawn":
                 case "info":
                 case "edit":
+                case "reload":
                     // Get boss names ONLY from registry file
                     List<String> bossNames = bossRegistry.getAllBossNames();
                     return StringUtil.copyPartialMatches(args[1], bossNames, completions);
@@ -99,6 +106,16 @@ public class ElootTabCompleter implements TabCompleter {
                         return StringUtil.copyPartialMatches(args[2], rarities, completions);
                     }
 
+                case "edit":
+                    // Config key suggestions for edit command
+                    List<String> configKeys = Arrays.asList(
+                            "chest-spawn-count",
+                            "announce-world",
+                            "boss-display-name",
+                            "announce-rarities"
+                    );
+                    return StringUtil.copyPartialMatches(args[2], configKeys, completions);
+
                 case "new":
                     // Suggest world names for new boss creation
                     return StringUtil.copyPartialMatches(args[2], Arrays.asList(
@@ -130,7 +147,38 @@ public class ElootTabCompleter implements TabCompleter {
                     break;
 
                 case "edit":
-                    // Config value suggestions for edit command
+                    // Fourth argument - config value suggestions
+                    String configKey = args[2].toLowerCase();
+
+                    switch (configKey) {
+                        case "chest-spawn-count":
+                            return StringUtil.copyPartialMatches(args[3], Arrays.asList("1", "5", "10", "15", "20"), completions);
+
+                        case "announce-world":
+                            // Suggest world names
+                            return StringUtil.copyPartialMatches(args[3], Arrays.asList(
+                                    "world", "world_nether", "world_the_end", "lobby", "arena"
+                            ), completions);
+
+                        case "announce-rarities":
+                            // Suggest common rarity combinations
+                            List<String> rarityCombinations = Arrays.asList(
+                                    "MYTHIC,GODLIKE",
+                                    "MYTHIC,GODLIKE,LEGENDARY",
+                                    "GODLIKE",
+                                    "MYTHIC",
+                                    "LEGENDARY,EPIC"
+                            );
+                            return StringUtil.copyPartialMatches(args[3], rarityCombinations, completions);
+
+                        case "boss-display-name":
+                            // No specific suggestions for display names
+                            break;
+                    }
+                    break;
+
+                case "new":
+                    // Config value suggestions for new command
                     return StringUtil.copyPartialMatches(args[3], Arrays.asList(
                             "chest-spawn-count", "respawn-timer-minutes",
                             "hologram-text", "particles-enabled", "world-name"
