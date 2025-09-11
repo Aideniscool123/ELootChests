@@ -1,6 +1,7 @@
 package com.Aiden.net.Elivius.eLootChests;
 
 import com.Aiden.net.Elivius.eLootChests.Enums.*;
+import com.Aiden.net.Elivius.eLootChests.GUI.GroupSelectionGUI;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -84,6 +85,10 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "edit":
                 return handleEditCommand(sender, args);
 
+            case "gui":
+                return handleGUICommand(sender);
+
+
             case "fixholograms":
                 return handleFixHologramsCommand(sender);
 
@@ -100,6 +105,22 @@ public class ElootCommand implements CommandExecutor, Listener {
                 sender.sendMessage("§cUnknown sub-command. Use: /eloot wand || new || table || spawn || despawn ");
                 return true;
         }
+    }
+
+    private boolean handleGUICommand(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be used by players!");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        if (!checkPermission(player, "eloot.admin")) return true;
+
+        // Open group selection GUI
+        GroupSelectionGUI gui = new GroupSelectionGUI(player, bossRegistry);
+        plugin.getGuiManager().openGUI(player, gui);
+
+        return true;
     }
 
     private boolean handleEditCommand(CommandSender sender, String[] args) {

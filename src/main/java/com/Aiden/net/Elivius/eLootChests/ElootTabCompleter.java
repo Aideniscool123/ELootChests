@@ -12,11 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * @author AidenTheStitch
- * @file ElootTabCompleter.java
- * @description Handles tab completion for /eloot commands
- */
 public class ElootTabCompleter implements TabCompleter {
 
     private final BossRegistry bossRegistry;
@@ -157,7 +152,7 @@ public class ElootTabCompleter implements TabCompleter {
                         case "announce-world":
                             // Suggest world names
                             return StringUtil.copyPartialMatches(args[3], Arrays.asList(
-                                    "world", "world_nether", "world_the_end", "lobby", "arena"
+                                    "world", "world_nether", "world_the_end"
                             ), completions);
 
                         case "announce-rarities":

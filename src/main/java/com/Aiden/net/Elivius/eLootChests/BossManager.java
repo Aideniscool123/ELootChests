@@ -160,6 +160,24 @@ public class BossManager {
         return getSavedChestLocations(bossName).size();
     }
 
+    public int getItemCount(String bossName) {
+        int total = 0;
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File lootFile = new File(bossFolder, "loottable.yml");
+
+        if (lootFile.exists()) {
+            YamlConfiguration loot = YamlConfiguration.loadConfiguration(lootFile);
+            for (Rarity rarity : Rarity.values()) {
+                String rarityKey = rarity.name().toLowerCase();
+                if (loot.contains(rarityKey + ".items")) {
+                    List<?> items = loot.getList(rarityKey + ".items");
+                    total += items != null ? items.size() : 0;
+                }
+            }
+        }
+        return total;
+    }
+
     public Map<Rarity, Integer> getItemCountsByRarity(String bossName) {
         Map<Rarity, Integer> counts = new HashMap<>();
         File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
@@ -962,6 +980,8 @@ public class BossManager {
 
         return itemsWithPercentages;
     }
+
+
 
     public void showLocationParticles(Player player, Location location, ParticleType particleType,
                                       int durationTicks, boolean throughBlocks) {

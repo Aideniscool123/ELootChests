@@ -1,12 +1,15 @@
 package com.Aiden.net.Elivius.eLootChests;
 
+import com.Aiden.net.Elivius.eLootChests.GUI.GUIManager;
 import org.bukkit.*;
-import com.Aiden.net.Elivius.eLootChests.Enums.*;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public final class LootChests extends JavaPlugin implements Listener {
+    private GUIManager guiManager;
+
+
     public LootChests() {
     }
 
@@ -20,11 +23,17 @@ public final class LootChests extends JavaPlugin implements Listener {
         this.bossManager = new BossManager(this);
         this.bossManager.loadActiveChests();
         this.bossRegistry = new BossRegistry(this);
+        this.guiManager = new GUIManager();
+        getServer().getPluginManager().registerEvents(guiManager, this);
 
         getCommand("eloot").setExecutor(new ElootCommand(this, bossManager, bossRegistry));
         getCommand("eloot").setTabCompleter(new ElootTabCompleter(bossManager, bossRegistry));
 
         getLogger().info("LootChests has been enabled!");
+    }
+
+    public GUIManager getGuiManager() {
+        return guiManager;
     }
 
     @Override

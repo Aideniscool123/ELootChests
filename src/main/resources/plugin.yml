@@ -47,6 +47,9 @@ permissions:
   eloot.test.use:
     description: Allows testing commands
     default: op
+  eloot.gui.use:
+    description: Allows using the GUI interface
+    default: op
 
   # Admin permission (includes all)
   eloot.admin:
@@ -63,3 +66,4 @@ permissions:
       eloot.edit.use: true
       eloot.test.use: true
       eloot.reload.use: true
+      eloot.gui.use: true
