@@ -39,12 +39,14 @@ public class GUIManager implements Listener {
             if (openGUIs.containsKey(player) && event.getInventory().equals(openGUIs.get(player).getInventory())) {
                 event.setCancelled(true);
 
+                // Detect click type
+                boolean isRightClick = event.getClick().toString().contains("RIGHT");
+
                 // Handle the click in the specific GUI
                 LootChestGUI gui = openGUIs.get(player);
                 if (gui instanceof GroupSelectionGUI) {
-                    ((GroupSelectionGUI) gui).handleClick(event.getSlot());
+                    ((GroupSelectionGUI) gui).handleClick(event.getSlot(), isRightClick);
                 }
-                // Add other GUI type checks here as I create them
             }
         }
     }

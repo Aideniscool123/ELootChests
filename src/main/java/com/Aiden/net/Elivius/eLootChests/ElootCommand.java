@@ -117,7 +117,7 @@ public class ElootCommand implements CommandExecutor, Listener {
         if (!checkPermission(player, "eloot.admin")) return true;
 
         // Open group selection GUI
-        GroupSelectionGUI gui = new GroupSelectionGUI(player, bossRegistry);
+        GroupSelectionGUI gui = new GroupSelectionGUI(player, bossRegistry, bossManager, plugin);
         plugin.getGuiManager().openGUI(player, gui);
 
         return true;

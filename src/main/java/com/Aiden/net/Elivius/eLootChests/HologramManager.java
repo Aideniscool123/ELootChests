@@ -14,7 +14,7 @@ import java.util.Map;
 
 
 public class HologramManager {
-    private static JavaPlugin plugin = null;
+    public static JavaPlugin plugin = null;
     private static final Map<Location, Object> activeHolograms = new HashMap<>();
     private boolean decentHologramsEnabled = false;
     private Method createHologramMethod;

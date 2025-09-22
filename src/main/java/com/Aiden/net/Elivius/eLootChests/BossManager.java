@@ -157,7 +157,15 @@ public class BossManager {
     }
 
     public int getChestCount(String bossName) {
-        return getSavedChestLocations(bossName).size();
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File coordsFile = new File(bossFolder, "coordinates.yml");
+
+        if (coordsFile.exists()) {
+            YamlConfiguration coords = YamlConfiguration.loadConfiguration(coordsFile);
+            List<String> locations = coords.getStringList("chest-locations");
+            return locations.size();
+        }
+        return 0;
     }
 
     public int getItemCount(String bossName) {
@@ -176,6 +184,18 @@ public class BossManager {
             }
         }
         return total;
+    }
+
+
+    public String getWorldName(String bossName) {
+        File bossFolder = new File(plugin.getDataFolder(), bossName.toLowerCase());
+        File configFile = new File(bossFolder, "config.yml");
+
+        if (configFile.exists()) {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+            return config.getString("world-name", "world");
+        }
+        return "world";
     }
 
     public Map<Rarity, Integer> getItemCountsByRarity(String bossName) {
