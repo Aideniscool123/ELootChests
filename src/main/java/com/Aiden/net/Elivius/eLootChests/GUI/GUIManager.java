@@ -12,7 +12,7 @@ public class GUIManager implements Listener {
     private final Map<Player, LootChestGUI> openGUIs = new HashMap<>();
 
     public void openGUI(Player player, LootChestGUI gui) {
-        closeGUI(player); // Close any existing GUI
+        closeGUI(player);
         openGUIs.put(player, gui);
         gui.open();
     }
@@ -39,13 +39,23 @@ public class GUIManager implements Listener {
             if (openGUIs.containsKey(player) && event.getInventory().equals(openGUIs.get(player).getInventory())) {
                 event.setCancelled(true);
 
-                // Detect click type
+                // Only detect right-click for now
                 boolean isRightClick = event.getClick().toString().contains("RIGHT");
 
-                // Handle the click in the specific GUI
+                // Handle the click
                 LootChestGUI gui = openGUIs.get(player);
+
                 if (gui instanceof GroupSelectionGUI) {
                     ((GroupSelectionGUI) gui).handleClick(event.getSlot(), isRightClick);
+                }
+                else if (gui instanceof GroupManagementGUI) {
+                    ((GroupManagementGUI) gui).handleClick(event.getSlot(), isRightClick);
+                }
+                else if (gui instanceof ConfigEditorGUI) {
+                    ((ConfigEditorGUI) gui).handleClick(event.getSlot(), isRightClick);
+                }
+                else if (gui instanceof LootTableGUI) {
+                    ((LootTableGUI) gui).handleClick(event.getSlot(), isRightClick);
                 }
             }
         }
