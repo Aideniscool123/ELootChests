@@ -8,7 +8,9 @@ import com.Aiden.net.Elivius.eLootChests.BossManager;
 import com.Aiden.net.Elivius.eLootChests.BossRegistry;
 import com.Aiden.net.Elivius.eLootChests.LootChests;
 import com.Aiden.net.Elivius.eLootChests.Enums.Rarity;
+
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class PaginatedLootTableGUI extends LootChestGUI {
@@ -16,7 +18,7 @@ public class PaginatedLootTableGUI extends LootChestGUI {
     private final BossRegistry bossRegistry;
     private final LootChests plugin;
     private final String groupName;
-    private Rarity currentRarity = null; // null = overview page
+    private Rarity currentRarity = null;
 
     public PaginatedLootTableGUI(Player player, String groupName, BossManager bossManager, BossRegistry bossRegistry, LootChests plugin) {
         super(player, "§8Loot Table: §e" + groupName, 54);
@@ -47,7 +49,10 @@ public class PaginatedLootTableGUI extends LootChestGUI {
     }
 
     private void setupOverviewPage() {
-        // Overview page showing all rarities
+        // FIRST: Clear the inventory before setting up overview
+        clearInventoryContent();
+
+        // THEN: Setup overview page
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
         if (infoMeta != null) {
@@ -67,14 +72,11 @@ public class PaginatedLootTableGUI extends LootChestGUI {
         }
         inventory.setItem(4, infoItem);
 
-        // FIXED: Use exact slot positions for rarities
+        // Display each rarity as a clickable item
         int[] raritySlots = {
-                // Row 1: 10-16
-                10, 11, 12, 13, 14, 15, 16,
-                // Row 2: 19-25
-                19, 20, 21, 22, 23, 24, 25,
-                // Row 3: 28-34
-                28, 29, 30, 31, 32, 33, 34
+                10,11,12,13,14,15,16,
+                19,20,21,22,23,24,25,
+                28,29,30,31,32,33,34
         };
 
         Rarity[] rarities = Rarity.values();
@@ -86,61 +88,20 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             ItemStack rarityItem = getRarityDisplayItem(rarity, itemCount);
             inventory.setItem(raritySlots[i], rarityItem);
         }
-    }
 
-    private ItemStack getRarityDisplayItem(Rarity rarity, int itemCount) {
-        Material material = getMaterialForRarity(rarity);
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(rarity.getFormattedName());
-            meta.setLore(Arrays.asList(
-                    "§7Items: §e" + itemCount,
-                    "§7Default chance: §e" + rarity.getDefaultPercentage() + "%",
-                    "",
-                    "§eClick to view " + rarity.getName() + " items",
-                    "§7" + (itemCount > 0 ? "§aContains " + itemCount + " items" : "§cNo items yet")
-            ));
-            item.setItemMeta(meta);
-        }
-
-        return item;
-    }
-
-    private Material getMaterialForRarity(Rarity rarity) {
-        switch (rarity) {
-            case COMMON: return Material.WHITE_WOOL;
-            case RARE: return Material.LIGHT_BLUE_WOOL;
-            case EPIC: return Material.PURPLE_WOOL;
-            case LEGENDARY: return Material.ORANGE_WOOL;
-            case MYTHIC: return Material.MAGENTA_WOOL;
-            case GODLIKE: return Material.RED_WOOL;
-            default: return Material.CHEST;
-        }
-    }
-
-    private String getRarityBreakdown(Map<Rarity, Integer> itemCounts) {
-        StringBuilder breakdown = new StringBuilder();
-        for (Rarity rarity : Rarity.values()) {
-            int count = itemCounts.getOrDefault(rarity, 0);
-            breakdown.append("§8- ")
-                    .append(rarity.getFormattedName())
-                    .append("§7: §e")
-                    .append(count)
-                    .append("\n");
-        }
-        return breakdown.toString().trim();
+        // Setup navigation buttons for overview page
+        setupNavigationButtons();
     }
 
     private void setupRarityPage(Rarity rarity) {
-        int itemCount = bossManager.getLootTableSummary(groupName).getOrDefault(rarity, 0);
-        Map<ItemStack, Double> itemsWithPercentages = bossManager.getItemsWithPercentages(groupName, rarity);
+        // FIRST: Clear the entire inventory except borders
+        clearInventoryContent();
 
-        // Rarity header
+        // THEN: Add the rarity header
         ItemStack headerItem = new ItemStack(getMaterialForRarity(rarity));
         ItemMeta headerMeta = headerItem.getItemMeta();
         if (headerMeta != null) {
+            int itemCount = bossManager.getLootTableSummary(groupName).getOrDefault(rarity, 0);
             headerMeta.setDisplayName(rarity.getFormattedName() + " §7Items");
             headerMeta.setLore(Arrays.asList(
                     "§7Total items: §e" + itemCount,
@@ -153,6 +114,9 @@ public class PaginatedLootTableGUI extends LootChestGUI {
         inventory.setItem(4, headerItem);
 
         // Display actual items from the loot table
+        Map<ItemStack, Double> itemsWithPercentages = bossManager.getItemsWithPercentages(groupName, rarity);
+        int itemCount = itemsWithPercentages.size();
+
         if (itemCount > 0) {
             int slot = 10; // Start displaying items
             int itemIndex = 0;
@@ -201,160 +165,145 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             }
             inventory.setItem(22, emptyItem);
         }
+
+        // Setup navigation buttons for rarity page
+        setupNavigationButtons();
+    }
+
+    private void clearInventoryContent() {
+        // Clear all slots except borders
+        int[] slotsToClear = {
+                10,11,12,13,14,15,16,
+                19,20,21,22,23,24,25,
+                28,29,30,31,32,33,34,
+                1,2,3,4,5,6,7, // Top row middle
+                46,47,48,50,51,52 // Bottom row middle
+        };
+
+        for (int slot : slotsToClear) {
+            if (slot < inventory.getSize()) {
+                inventory.setItem(slot, null);
+            }
+        }
+    }
+
+    private ItemStack getRarityDisplayItem(Rarity rarity, int itemCount) {
+        Material material = getMaterialForRarity(rarity);
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta != null) {
+            meta.setDisplayName(rarity.getFormattedName());
+            meta.setLore(Arrays.asList(
+                    "§7Items: §e" + itemCount,
+                    "§7Default chance: §e" + rarity.getDefaultPercentage() + "%",
+                    "",
+                    "§eClick to view " + rarity.getName() + " items",
+                    "§7" + (itemCount > 0 ? "§aContains " + itemCount + " items" : "§cNo items yet")
+            ));
+            item.setItemMeta(meta);
+        }
+
+        return item;
+    }
+
+    private Material getMaterialForRarity(Rarity rarity) {
+        switch (rarity) {
+            case COMMON: return Material.WHITE_WOOL;
+            case RARE: return Material.LIGHT_BLUE_WOOL;
+            case EPIC: return Material.PURPLE_WOOL;
+            case LEGENDARY: return Material.ORANGE_WOOL;
+            case MYTHIC: return Material.MAGENTA_WOOL;
+            case GODLIKE: return Material.RED_WOOL;
+            default: return Material.CHEST;
+        }
+    }
+
+    // ADD THIS MISSING METHOD:
+    private String getRarityBreakdown(Map<Rarity, Integer> itemCounts) {
+        StringBuilder breakdown = new StringBuilder();
+        for (Rarity rarity : Rarity.values()) {
+            int count = itemCounts.getOrDefault(rarity, 0);
+            breakdown.append("§8- ")
+                    .append(rarity.getFormattedName())
+                    .append("§7: §e")
+                    .append(count)
+                    .append("\n");
+        }
+        return breakdown.toString().trim();
     }
 
     private void setupNavigationButtons() {
         if (currentRarity == null) {
-            // OVERVIEW PAGE LAYOUT
-            ItemStack backButton = new ItemStack(Material.BARRIER);
-            ItemMeta backMeta = backButton.getItemMeta();
-            if (backMeta != null) {
-                backMeta.setDisplayName("§cBack to Management");
-                backMeta.setLore(Arrays.asList("§7Return to group management"));
-                backButton.setItemMeta(backMeta);
-            }
-            inventory.setItem(48, backButton);
-
-            ItemStack pageIndicator = new ItemStack(Material.MAP);
-            ItemMeta pageMeta = pageIndicator.getItemMeta();
-            if (pageMeta != null) {
-                pageMeta.setDisplayName("§bLoot Table Overview");
-                pageMeta.setLore(Arrays.asList(
-                        "§7Click any rarity to view items",
-                        "§7" + Rarity.values().length + " rarity tiers available"
-                ));
-                pageIndicator.setItemMeta(pageMeta);
-            }
-            inventory.setItem(49, pageIndicator);
-
-            ItemStack refreshButton = new ItemStack(Material.EMERALD);
-            ItemMeta refreshMeta = refreshButton.getItemMeta();
-            if (refreshMeta != null) {
-                refreshMeta.setDisplayName("§aRefresh");
-                refreshMeta.setLore(Arrays.asList("§7Reload loot table data"));
-                refreshButton.setItemMeta(refreshMeta);
-            }
-            inventory.setItem(50, refreshButton);
-
+            // Overview page buttons
+            addButton(48, Material.BARRIER, "§cBack to Management", "Return to group management");
+            addButton(49, Material.MAP, "§bLoot Table Overview", "Click rarities to view items");
+            addButton(50, Material.EMERALD, "§aRefresh", "Reload loot table");
         } else {
-            // RARITY PAGE LAYOUT
-            ItemStack backButton = new ItemStack(Material.ARROW);
-            ItemMeta backMeta = backButton.getItemMeta();
-            if (backMeta != null) {
-                backMeta.setDisplayName("§f← Back to Overview");
-                backMeta.setLore(Arrays.asList("§7Return to rarity selection"));
-                backButton.setItemMeta(backMeta);
-            }
-            inventory.setItem(45, backButton);
-
-            ItemStack managementButton = new ItemStack(Material.BARRIER);
-            ItemMeta managementMeta = managementButton.getItemMeta();
-            if (managementMeta != null) {
-                managementMeta.setDisplayName("§cBack to Management");
-                managementMeta.setLore(Arrays.asList("§7Return to group management"));
-                managementButton.setItemMeta(managementMeta);
-            }
-            inventory.setItem(49, managementButton);
-
-            ItemStack refreshButton = new ItemStack(Material.EMERALD);
-            ItemMeta refreshMeta = refreshButton.getItemMeta();
-            if (refreshMeta != null) {
-                refreshMeta.setDisplayName("§aRefresh");
-                refreshMeta.setLore(Arrays.asList("§7Reload item data"));
-                refreshButton.setItemMeta(refreshMeta);
-            }
-            inventory.setItem(53, refreshButton);
+            // Rarity page buttons
+            addButton(45, Material.ARROW, "§f← Back to Overview", "Return to rarity selection");
+            addButton(49, Material.BARRIER, "§cBack to Management", "Return to group management");
+            addButton(53, Material.EMERALD, "§aRefresh", "Reload items");
         }
+    }
+
+    private void addButton(int slot, Material material, String name, String lore) {
+        ItemStack button = new ItemStack(material);
+        ItemMeta meta = button.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(Arrays.asList("§7" + lore));
+            button.setItemMeta(meta);
+        }
+        inventory.setItem(slot, button);
     }
 
     public void handleClick(int slot, boolean isRightClick) {
-        // DEBUG: Tell us what slot was clicked
-        player.sendMessage("§7DEBUG: Clicked slot " + slot);
+        // Navigation buttons first
+        if (slot == 48) {
+            openManagementGUI();
+            return;
+        }
+        if (slot == 50 || slot == 53) {
+            updateGUI();
+            player.sendMessage("§aRefreshed!");
+            return;
+        }
+        if (slot == 45 && currentRarity != null) {
+            currentRarity = null;
+            updateGUI();
+            return;
+        }
 
+        // Rarity clicks
         if (currentRarity == null) {
-            // OVERVIEW PAGE CLICKS
-            switch (slot) {
-                case 48: // Back to Management
-                    openManagementGUI();
-                    break;
-
-                case 50: // Refresh
-                    updateGUI();
-                    player.sendMessage("§aLoot table refreshed!");
-                    break;
-
-                default:
-                    // Handle rarity clicks - FIXED: Use exact slot mapping
-                    handleRarityClick(slot);
-                    break;
-            }
-        } else {
-            // RARITY PAGE CLICKS
-            switch (slot) {
-                case 45: // Back to Overview
-                    currentRarity = null;
-                    updateGUI();
-                    player.sendMessage("§aReturning to overview...");
-                    break;
-
-                case 49: // Back to Management
-                    openManagementGUI();
-                    break;
-
-                case 53: // Refresh
-                    updateGUI();
-                    player.sendMessage("§aItem list refreshed!");
-                    break;
-
-                default:
-                    // Handle item clicks
-                    if (slot >= 10 && slot <= 43) {
-                        handleItemClick(slot);
-                    }
-                    break;
-            }
-        }
-    }
-
-    private void handleRarityClick(int slot) {
-        // FIXED: Exact slot mapping for rarities
-        int[] raritySlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34};
-        Rarity[] rarities = Rarity.values();
-
-        player.sendMessage("§7DEBUG: Checking slot " + slot + " against " + raritySlots.length + " possible slots");
-
-        for (int i = 0; i < raritySlots.length; i++) {
-            if (slot == raritySlots[i]) {
-                player.sendMessage("§7DEBUG: Found matching slot at index " + i);
-                if (i < rarities.length) {
-                    currentRarity = rarities[i];
-                    updateGUI();
-                    player.sendMessage("§aOpening " + currentRarity.getFormattedName() + "§a items...");
-                    return;
-                } else {
-                    player.sendMessage("§cNo rarity found for slot index " + i);
+            ItemStack clicked = inventory.getItem(slot);
+            if (clicked != null && clicked.getType().name().contains("WOOL")) {
+                Rarity clickedRarity = getRarityFromWoolColor(clicked.getType());
+                if (clickedRarity != null) {
+                    openRarityPage(clickedRarity);
                     return;
                 }
             }
         }
-        player.sendMessage("§7DEBUG: Slot " + slot + " not found in rarity slots");
     }
 
-    private void handleItemClick(int slot) {
-        ItemStack clicked = inventory.getItem(slot);
-        if (clicked != null && clicked.getType() != Material.AIR) {
-            player.sendMessage("§eItem: §7" + clicked.getType().name());
-            player.sendMessage("§eRarity: " + currentRarity.getFormattedName());
-
-            if (clicked.hasItemMeta() && clicked.getItemMeta().hasLore()) {
-                for (String line : clicked.getItemMeta().getLore()) {
-                    if (line.contains("Spawn chance:")) {
-                        player.sendMessage("§e" + line.trim());
-                        break;
-                    }
-                }
-            }
+    private Rarity getRarityFromWoolColor(Material woolType) {
+        switch (woolType) {
+            case WHITE_WOOL: return Rarity.COMMON;
+            case LIGHT_BLUE_WOOL: return Rarity.RARE;
+            case PURPLE_WOOL: return Rarity.EPIC;
+            case ORANGE_WOOL: return Rarity.LEGENDARY;
+            case MAGENTA_WOOL: return Rarity.MYTHIC;
+            case RED_WOOL: return Rarity.GODLIKE;
+            default: return null;
         }
+    }
+
+    private void openRarityPage(Rarity rarity) {
+        currentRarity = rarity;
+        updateGUI();
+        player.sendMessage("§aOpening " + rarity.getFormattedName() + "§a items...");
     }
 
     private void updateGUI() {

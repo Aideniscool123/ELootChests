@@ -36,27 +36,39 @@ public class GUIManager implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getWhoClicked() instanceof Player) {
             Player player = (Player) event.getWhoClicked();
+
+            // DEBUG: Tell us what's happening
+            player.sendMessage("§7DEBUG: Clicked slot " + event.getSlot());
+
             if (openGUIs.containsKey(player) && event.getInventory().equals(openGUIs.get(player).getInventory())) {
                 event.setCancelled(true);
 
-                // Only detect right-click for now
+                // DEBUG: Tell us which GUI we're in
+                LootChestGUI gui = openGUIs.get(player);
+                player.sendMessage("§7DEBUG: GUI type: " + gui.getClass().getSimpleName());
+
+                // Detect click type
                 boolean isRightClick = event.getClick().toString().contains("RIGHT");
 
-                // Handle the click
-                LootChestGUI gui = openGUIs.get(player);
-
+                // Handle the click in the specific GUI
                 if (gui instanceof GroupSelectionGUI) {
+                    player.sendMessage("§7DEBUG: Calling GroupSelectionGUI handleClick");
                     ((GroupSelectionGUI) gui).handleClick(event.getSlot(), isRightClick);
                 }
                 else if (gui instanceof GroupManagementGUI) {
+                    player.sendMessage("§7DEBUG: Calling GroupManagementGUI handleClick");
                     ((GroupManagementGUI) gui).handleClick(event.getSlot(), isRightClick);
                 }
+                else if (gui instanceof PaginatedLootTableGUI) {
+                    player.sendMessage("§7DEBUG: Calling PaginatedLootTableGUI handleClick");
+                    ((PaginatedLootTableGUI) gui).handleClick(event.getSlot(), isRightClick);
+                }
                 else if (gui instanceof ConfigEditorGUI) {
+                    player.sendMessage("§7DEBUG: Calling ConfigEditorGUI handleClick");
                     ((ConfigEditorGUI) gui).handleClick(event.getSlot(), isRightClick);
                 }
-                else if (gui instanceof LootTableGUI) {
-                    ((LootTableGUI) gui).handleClick(event.getSlot(), isRightClick);
-                }
+            } else {
+                player.sendMessage("§7DEBUG: No open GUI found for player");
             }
         }
     }

@@ -85,7 +85,7 @@ public class ElootCommand implements CommandExecutor, Listener {
             case "edit":
                 return handleEditCommand(sender, args);
 
-            case "gui":
+            case "admin":
                 return handleGUICommand(sender);
 
 

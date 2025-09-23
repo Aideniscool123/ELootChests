@@ -27,7 +27,7 @@ public class ElootTabCompleter implements TabCompleter {
         if (args.length == 1) {
             // Main command completions
             List<String> commands = new ArrayList<>(Arrays.asList(
-                    "wand", "spawn", "despawn", "table", "new", "info", "edit", "reload", "testitem"
+                    "wand", "spawn", "despawn", "table", "new", "info", "edit", "reload", "testitem", "admin", "gui"
             ));
             return StringUtil.copyPartialMatches(args[0], commands, completions);
         }
@@ -44,6 +44,8 @@ public class ElootTabCompleter implements TabCompleter {
                 case "info":
                 case "edit":
                 case "reload":
+                case "admin":
+                case "gui":
                     // Get boss names ONLY from registry file
                     List<String> bossNames = bossRegistry.getAllBossNames();
                     return StringUtil.copyPartialMatches(args[1], bossNames, completions);

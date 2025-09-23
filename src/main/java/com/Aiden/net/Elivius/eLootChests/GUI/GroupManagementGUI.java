@@ -37,7 +37,7 @@ public class GroupManagementGUI extends LootChestGUI {
         // Get real data with proper world detection
         int chestCount = bossManager.getChestCount(groupName);
         int itemCount = bossManager.getItemCount(groupName);
-        String detectedWorldName = getWorldNameFromCoordinates(groupName); // CHANGED VARIABLE NAME
+        String detectedWorldName = getWorldNameFromCoordinates(groupName);
 
         // Group Info Item
         ItemStack infoItem = new ItemStack(Material.PAPER);
@@ -58,7 +58,7 @@ public class GroupManagementGUI extends LootChestGUI {
             infoMeta.setLore(Arrays.asList(
                     "§7Chest locations: §a" + chestCount,
                     "§7Total items: §e" + itemCount,
-                    "§7World: §e" + detectedWorldName, // USE CHANGED VARIABLE NAME
+                    "§7World: §e" + detectedWorldName,
                     "",
                     "§7Group configuration and statistics"
             ));
@@ -100,7 +100,7 @@ public class GroupManagementGUI extends LootChestGUI {
             spawnMeta.setLore(Arrays.asList(
                     "§7Spawn chests in the world",
                     "§7World: §e" + detectedWorldName, // USE CHANGED VARIABLE NAME
-                    "§7Chests to spawn: §e" + chestCount,
+                    "§7Possible Chest spawbn locations: §e" + chestCount,
                     "",
                     "§eClick to spawn chests now"
             ));
