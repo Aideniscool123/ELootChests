@@ -8,9 +8,7 @@ import com.Aiden.net.Elivius.eLootChests.BossManager;
 import com.Aiden.net.Elivius.eLootChests.BossRegistry;
 import com.Aiden.net.Elivius.eLootChests.LootChests;
 import com.Aiden.net.Elivius.eLootChests.Enums.Rarity;
-
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 public class PaginatedLootTableGUI extends LootChestGUI {
@@ -168,7 +166,6 @@ public class PaginatedLootTableGUI extends LootChestGUI {
                 // Add lore to show percentage
                 ItemMeta meta = lootItem.getItemMeta();
                 if (meta != null) {
-                    List<String> originalLore = meta.getLore();
                     meta.setLore(Arrays.asList(
                             "§7Spawn chance: §e" + percentage + "%",
                             "§7Rarity: " + rarity.getFormattedName(),
@@ -204,30 +201,11 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             }
             inventory.setItem(22, emptyItem);
         }
-
-        // Add item instructions
-        ItemStack helpItem = new ItemStack(Material.BOOK);
-        ItemMeta helpMeta = helpItem.getItemMeta();
-        if (helpMeta != null) {
-            helpMeta.setDisplayName("§bItem Management");
-            helpMeta.setLore(Arrays.asList(
-                    "§7Add items using commands:",
-                    "§e/eloot table add " + groupName + " " + rarity.name().toLowerCase() + " [%]",
-                    "",
-                    "§7Remove items:",
-                    "§eHold item → /eloot table remove " + groupName,
-                    "",
-                    "§7Items auto-update in this GUI"
-            ));
-            helpItem.setItemMeta(helpMeta);
-        }
-        inventory.setItem(8, helpItem);
     }
 
     private void setupNavigationButtons() {
         if (currentRarity == null) {
             // OVERVIEW PAGE LAYOUT
-            // Back to Management Button (left side)
             ItemStack backButton = new ItemStack(Material.BARRIER);
             ItemMeta backMeta = backButton.getItemMeta();
             if (backMeta != null) {
@@ -237,7 +215,6 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             }
             inventory.setItem(48, backButton);
 
-            // Page Indicator (center)
             ItemStack pageIndicator = new ItemStack(Material.MAP);
             ItemMeta pageMeta = pageIndicator.getItemMeta();
             if (pageMeta != null) {
@@ -250,19 +227,17 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             }
             inventory.setItem(49, pageIndicator);
 
-            // Refresh Button (right side)
             ItemStack refreshButton = new ItemStack(Material.EMERALD);
             ItemMeta refreshMeta = refreshButton.getItemMeta();
             if (refreshMeta != null) {
                 refreshMeta.setDisplayName("§aRefresh");
-                refreshMeta.setLore(Arrays.asList("§7Reload loot table data", "§7Use after adding/removing items"));
+                refreshMeta.setLore(Arrays.asList("§7Reload loot table data"));
                 refreshButton.setItemMeta(refreshMeta);
             }
             inventory.setItem(50, refreshButton);
 
         } else {
-            // RARITY PAGE LAYOUT - SIMPLIFIED
-            // Back to Overview Button (left side)
+            // RARITY PAGE LAYOUT
             ItemStack backButton = new ItemStack(Material.ARROW);
             ItemMeta backMeta = backButton.getItemMeta();
             if (backMeta != null) {
@@ -272,7 +247,6 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             }
             inventory.setItem(45, backButton);
 
-            // Back to Management Button (center) - REPLACED THE MAP
             ItemStack managementButton = new ItemStack(Material.BARRIER);
             ItemMeta managementMeta = managementButton.getItemMeta();
             if (managementMeta != null) {
@@ -282,12 +256,11 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             }
             inventory.setItem(49, managementButton);
 
-            // Refresh Button (right side)
             ItemStack refreshButton = new ItemStack(Material.EMERALD);
             ItemMeta refreshMeta = refreshButton.getItemMeta();
             if (refreshMeta != null) {
                 refreshMeta.setDisplayName("§aRefresh");
-                refreshMeta.setLore(Arrays.asList("§7Reload item data", "§7Use after changes"));
+                refreshMeta.setLore(Arrays.asList("§7Reload item data"));
                 refreshButton.setItemMeta(refreshMeta);
             }
             inventory.setItem(53, refreshButton);
@@ -295,6 +268,9 @@ public class PaginatedLootTableGUI extends LootChestGUI {
     }
 
     public void handleClick(int slot, boolean isRightClick) {
+        // DEBUG: Tell us what slot was clicked
+        player.sendMessage("§7DEBUG: Clicked slot " + slot);
+
         if (currentRarity == null) {
             // OVERVIEW PAGE CLICKS
             switch (slot) {
@@ -308,10 +284,8 @@ public class PaginatedLootTableGUI extends LootChestGUI {
                     break;
 
                 default:
-                    // Handle rarity clicks
-                    if (slot >= 10 && slot <= 34) {
-                        handleRarityClick(slot);
-                    }
+                    // Handle rarity clicks - FIXED: Use exact slot mapping
+                    handleRarityClick(slot);
                     break;
             }
         } else {
@@ -320,9 +294,10 @@ public class PaginatedLootTableGUI extends LootChestGUI {
                 case 45: // Back to Overview
                     currentRarity = null;
                     updateGUI();
+                    player.sendMessage("§aReturning to overview...");
                     break;
 
-                case 49: // Back to Management - THIS NOW WORKS!
+                case 49: // Back to Management
                     openManagementGUI();
                     break;
 
@@ -342,17 +317,27 @@ public class PaginatedLootTableGUI extends LootChestGUI {
     }
 
     private void handleRarityClick(int slot) {
-        // FIXED: Use exact slot mapping
+        // FIXED: Exact slot mapping for rarities
         int[] raritySlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34};
+        Rarity[] rarities = Rarity.values();
+
+        player.sendMessage("§7DEBUG: Checking slot " + slot + " against " + raritySlots.length + " possible slots");
 
         for (int i = 0; i < raritySlots.length; i++) {
-            if (slot == raritySlots[i] && i < Rarity.values().length) {
-                currentRarity = Rarity.values()[i];
-                updateGUI();
-                player.sendMessage("§aOpening " + currentRarity.getFormattedName() + "§a items...");
-                return;
+            if (slot == raritySlots[i]) {
+                player.sendMessage("§7DEBUG: Found matching slot at index " + i);
+                if (i < rarities.length) {
+                    currentRarity = rarities[i];
+                    updateGUI();
+                    player.sendMessage("§aOpening " + currentRarity.getFormattedName() + "§a items...");
+                    return;
+                } else {
+                    player.sendMessage("§cNo rarity found for slot index " + i);
+                    return;
+                }
             }
         }
+        player.sendMessage("§7DEBUG: Slot " + slot + " not found in rarity slots");
     }
 
     private void handleItemClick(int slot) {
@@ -361,7 +346,6 @@ public class PaginatedLootTableGUI extends LootChestGUI {
             player.sendMessage("§eItem: §7" + clicked.getType().name());
             player.sendMessage("§eRarity: " + currentRarity.getFormattedName());
 
-            // Show percentage if available in lore
             if (clicked.hasItemMeta() && clicked.getItemMeta().hasLore()) {
                 for (String line : clicked.getItemMeta().getLore()) {
                     if (line.contains("Spawn chance:")) {
