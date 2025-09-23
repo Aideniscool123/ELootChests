@@ -51,9 +51,22 @@ public class GroupSelectionGUI extends LootChestGUI {
         int startIndex = currentPage * groupsPerPage;
         int endIndex = Math.min(startIndex + groupsPerPage, allBosses.size());
 
-        // Add group items for this page
-        int slot = 10; // Starting slot for groups (first row, second column)
+        // FIXED: Proper slot calculation for 3 rows of 7 items
+        int[] groupSlots = {
+                // Row 1: slots 10-16 (7 slots)
+                10, 11, 12, 13, 14, 15, 16,
+                // Row 2: slots 19-25 (7 slots)
+                19, 20, 21, 22, 23, 24, 25,
+                // Row 3: slots 28-34 (7 slots) - FIXED: No shift!
+                28, 29, 30, 31, 32, 33, 34
+        };
+
+        // Add group items for this page using fixed slot positions
         for (int i = startIndex; i < endIndex; i++) {
+            int slotIndex = i - startIndex;
+            if (slotIndex >= groupSlots.length) break;
+
+            int slot = groupSlots[slotIndex];
             String groupName = allBosses.get(i);
 
             ItemStack groupItem = new ItemStack(Material.CHEST);
@@ -101,10 +114,6 @@ public class GroupSelectionGUI extends LootChestGUI {
             }
 
             inventory.setItem(slot, groupItem);
-            slot++;
-
-            // Move to next row every 7 slots
-            if (slot % 9 == 7) slot += 2;
         }
 
         setupNavigationButtons(allBosses.size());
@@ -185,35 +194,26 @@ public class GroupSelectionGUI extends LootChestGUI {
             return;
         }
 
-        // Check if clicked on a group item (slots 10-43, but only valid group slots)
-        if (isValidGroupSlot(slot)) {
-            ItemStack clicked = inventory.getItem(slot);
-            if (clicked != null && clicked.getType() == Material.CHEST && clicked.hasItemMeta()) {
-                String groupName = clicked.getItemMeta().getDisplayName().replace("§e", "");
-                handleGroupClick(groupName, isRightClick);
+        // FIXED: Check if clicked on a valid group slot using our fixed array
+        int[] validSlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34};
+        for (int validSlot : validSlots) {
+            if (slot == validSlot) {
+                ItemStack clicked = inventory.getItem(slot);
+                if (clicked != null && clicked.getType() == Material.CHEST && clicked.hasItemMeta()) {
+                    String groupName = clicked.getItemMeta().getDisplayName().replace("§e", "");
+                    handleGroupClick(groupName, isRightClick);
+                    return;
+                }
             }
         }
-    }
-
-    private boolean isValidGroupSlot(int slot) {
-        // Check if slot is in the valid group area (rows 2-4, columns 2-8)
-        if (slot < 10 || slot > 43) return false;
-
-        // Check if slot is not in border columns (0 and 8)
-        int column = slot % 9;
-        if (column == 0 || column == 8) return false;
-
-        return true;
     }
 
     private void handleGroupClick(String groupName, boolean isRightClick) {
         player.closeInventory();
 
         if (isRightClick) {
-            // Right-click: Spawn chests or guide to add locations
             handleSpawnChests(groupName);
         } else {
-            // Left-click: Open management GUI
             handleManageGroup(groupName);
         }
     }
@@ -222,7 +222,6 @@ public class GroupSelectionGUI extends LootChestGUI {
         int chestCount = bossManager.getChestCount(groupName);
 
         if (chestCount == 0) {
-            // No coordinates - guide player to add them
             player.sendMessage("");
             player.sendMessage("§6§l" + groupName + " - No Chest Locations");
             player.sendMessage("§7This group has no chest locations configured.");
@@ -233,16 +232,13 @@ public class GroupSelectionGUI extends LootChestGUI {
             player.sendMessage("§72. §eRight-click blocks §7- Add chest locations");
             player.sendMessage("§73. §eCome back here §7- Spawn chests!");
             player.sendMessage("");
-            player.sendMessage("§cOr type 'gui' to reopen the group selection.");
         } else {
-            // Has coordinates - spawn chests!
             player.performCommand("eloot spawn " + groupName);
             player.sendMessage("§aSpawning chests for group: §e" + groupName);
         }
     }
 
     private void handleManageGroup(String groupName) {
-        // Open the group management GUI
         GroupManagementGUI managementGUI = new GroupManagementGUI(player, groupName, bossManager, bossRegistry, plugin);
         plugin.getGuiManager().openGUI(player, managementGUI);
     }
@@ -261,7 +257,6 @@ public class GroupSelectionGUI extends LootChestGUI {
         player.sendMessage("§cType 'cancel' to cancel creation.");
         player.sendMessage("");
 
-        // Register a one-time chat listener
         ChatListener listener = new ChatListener(player, groupName -> {
             handleGroupNameInput(groupName);
         });
@@ -281,7 +276,6 @@ public class GroupSelectionGUI extends LootChestGUI {
             return;
         }
 
-        // Validate group name
         if (!isValidGroupName(groupName)) {
             player.sendMessage("§cInvalid group name! Use only letters, numbers, and underscores (3-20 characters).");
             player.sendMessage("§7Please try again or type 'cancel':");
@@ -289,7 +283,6 @@ public class GroupSelectionGUI extends LootChestGUI {
             return;
         }
 
-        // Check if group already exists
         if (bossRegistry.bossExists(groupName)) {
             player.sendMessage("§cA group named '" + groupName + "' already exists!");
             player.sendMessage("§7Please choose a different name or type 'cancel':");
@@ -297,7 +290,6 @@ public class GroupSelectionGUI extends LootChestGUI {
             return;
         }
 
-        // Create the group
         createNewGroup(groupName);
     }
 
